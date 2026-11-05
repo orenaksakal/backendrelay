@@ -4,7 +4,7 @@ ARG OCI_REVISION=unknown
 # The dashboard bundle is static, so build it on the host platform and copy it
 # into the target-platform Caddy image. This also avoids running pnpm, Node and
 # the workspace package builds under arm64 emulation on an amd64 release host.
-FROM --platform=$BUILDPLATFORM node:24.22.1-slim AS dependencies
+FROM --platform=$BUILDPLATFORM node:26.12.1-slim AS dependencies
 
 WORKDIR /workspace
 
@@ -14,7 +14,7 @@ COPY patches ./patches
 RUN corepack enable pnpm && \
     pnpm install --frozen-lockfile
 
-FROM --platform=$BUILDPLATFORM node:24.22.1-slim AS pruner
+FROM --platform=$BUILDPLATFORM node:26.12.1-slim AS pruner
 
 WORKDIR /workspace
 
@@ -23,7 +23,7 @@ COPY . .
 RUN corepack enable pnpm && \
     pnpm turbo prune backendrelay-dashboard --docker
 
-FROM --platform=$BUILDPLATFORM node:24.22.1-slim AS builder
+FROM --platform=$BUILDPLATFORM node:26.12.1-slim AS builder
 
 WORKDIR /workspace
 
