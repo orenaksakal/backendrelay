@@ -1,0 +1,66 @@
+[package]
+name = "instant-server"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+default = []
+
+[dependencies]
+axum.workspace = true
+base64.workspace = true
+chrono.workspace = true
+chrono-tz.workspace = true
+crc32fast.workspace = true
+deadpool-postgres.workspace = true
+flate2.workspace = true
+hyper.workspace = true
+instant-auth = { path = "../instant-auth" }
+instant-datalog = { path = "../instant-datalog" }
+instant-http = { path = "../instant-http" }
+instant-instaql = { path = "../instant-instaql" }
+instant-pg = { path = "../instant-pg" }
+instant-permissions = { path = "../instant-permissions" }
+instant-realtime = { path = "../instant-realtime" }
+instant-transact = { path = "../instant-transact" }
+instant-wal = { path = "../instant-wal" }
+prost.workspace = true
+futures-util.workspace = true
+hmac.workspace = true
+infer.workspace = true
+ipnet.workspace = true
+jsonwebtoken.workspace = true
+mimalloc.workspace = true
+rand.workspace = true
+ring.workspace = true
+rustls.workspace = true
+regex.workspace = true
+reqwest.workspace = true
+sentry.workspace = true
+sentry-tracing.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-postgres.workspace = true
+tokio-postgres-rustls.workspace = true
+tokio-util.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+url.workspace = true
+xxhash-rust.workspace = true
+zip.workspace = true
+zstd.workspace = true
+
+[dev-dependencies]
+instant-test-support = { path = "../instant-test-support" }
+tokio = { workspace = true, features = ["test-util"] }
+tower.workspace = true
+
+[lints]
+workspace = true

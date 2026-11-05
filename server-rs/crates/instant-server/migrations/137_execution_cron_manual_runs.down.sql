@@ -1,0 +1,1 @@
+drop table execution_cron_manual_runs;

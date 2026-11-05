@@ -1,0 +1,211 @@
+services:
+  postgres:
+    image: "${INSTANT_POSTGRES_IMAGE:-backendrelay/postgres:17-local}"
+    build:
+      context: ./postgres
+    ports:
+      - "127.0.0.1:${INSTANT_POSTGRES_PORT:-8890}:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pass}
+      # Bootstrap superuser. The server connects as the separate, unprivileged
+      # INSTANT_DB_USER role created by the image's init script.
+      POSTGRES_USER: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-instant}
+      INSTANT_DB_USER: ${INSTANT_DB_USER:-instant}
+      INSTANT_DB_PASSWORD: ${INSTANT_DB_PASSWORD:-instant-test}
+    volumes:
+      - "backend-db:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=20"
+      - "-c"
+      - "max_wal_senders=20"
+      - "-c"
+      - "max_slot_wal_keep_size=4GB"
+      - "-c"
+      - "shared_buffers=${INSTANT_PG_SHARED_BUFFERS:-256MB}"
+      - "-c"
+      - "effective_cache_size=${INSTANT_PG_EFFECTIVE_CACHE_SIZE:-1GB}"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_preload_libraries=pg_hint_plan,pg_stat_statements"
+      - "-c"
+      - "log_min_duration_statement=500ms"
+      - "-c"
+      - "output_plugin_libraries=wal2json"
+      - "-c"
+      - "random_page_cost=1.1"
+
+  www:
+    platform: ${INSTANT_DASHBOARD_PLATFORM:-}
+    depends_on:
+      - server
+    image: "${INSTANT_DASHBOARD_IMAGE:-backendrelay/dashboard:local}"
+    build:
+      context: ../client
+      dockerfile: Dockerfile.www
+    ports:
+      - "127.0.0.1:${INSTANT_DASHBOARD_PORT:-3000}:3000"
+    # The launcher rewrites publicSelfHostedVariables.js under /app at startup,
+    # so the root filesystem stays writable.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${INSTANT_DASHBOARD_MEM_LIMIT:-512m}
+    cpus: ${INSTANT_DASHBOARD_CPUS:-1}
+    tmpfs:
+      - /tmp
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    environment:
+      # Where the backend url will be available externally
+      - INSTANT_BACKEND_URL=${INSTANT_BACKEND_URL:-http://localhost:8888}
+      - INSTANT_STORAGE_ORIGIN=${S3_PUBLIC_ENDPOINT:-}
+      - NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN:-}
+
+  s3:
+    image: ${INSTANT_TEST_S3_IMAGE:-rustfs/rustfs@sha256:ed9210d6411d77ffceb70d94b964a3cb7d225983368bc25bebe01e995293dcc2}
+    restart: always
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    ports:
+      - "127.0.0.1:${INSTANT_S3_TEST_PORT:-9000}:9000"
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_TEST_ACCESS_KEY:-testaccesskey}
+      RUSTFS_SECRET_KEY: ${S3_TEST_SECRET_KEY:-testsecretkey}
+    volumes:
+      - s3_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  createbuckets:
+    image: ${INSTANT_TEST_AWSCLI_IMAGE:-amazon/aws-cli@sha256:c8156a0e74e13929a42d7e60f0d4e14e7d28d980cd21822505d4bff80e5460c1}
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_TEST_ACCESS_KEY:-testaccesskey}
+      AWS_SECRET_ACCESS_KEY: ${S3_TEST_SECRET_KEY:-testsecretkey}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${S3_BUCKET:-instant-bucket}
+      S3_APP_BACKUPS_BUCKET: ${S3_APP_BACKUPS_BUCKET:-instant-backups}
+      INSTANT_TEST_CORS_ORIGIN: ${INSTANT_TEST_CORS_ORIGIN:-}
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    depends_on:
+      s3:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c '
+      set -eu;
+      aws --endpoint-url http://s3:9000 s3api create-bucket --bucket "$$S3_BUCKET" 2>/dev/null || true;
+      aws --endpoint-url http://s3:9000 s3api create-bucket --bucket "$$S3_APP_BACKUPS_BUCKET" 2>/dev/null || true;
+      cors_origins="\"http://localhost:3000\",\"http://127.0.0.1:3000\"";
+      if [ -n "$${INSTANT_TEST_CORS_ORIGIN:-}" ]; then
+        cors_origins="$$cors_origins,\"$$INSTANT_TEST_CORS_ORIGIN\"";
+      fi;
+      cors_configuration="{\"CORSRules\":[{\"AllowedOrigins\":[$$cors_origins],\"AllowedMethods\":[\"GET\",\"PUT\",\"HEAD\",\"DELETE\"],\"AllowedHeaders\":[\"*\"],\"ExposeHeaders\":[\"ETag\"]}]}";
+      aws --endpoint-url http://s3:9000 s3api put-bucket-cors --bucket "$$S3_BUCKET" --cors-configuration "$$cors_configuration";
+      aws --endpoint-url http://s3:9000 s3api put-bucket-cors --bucket "$$S3_APP_BACKUPS_BUCKET" --cors-configuration "$$cors_configuration";
+      '
+
+  server:
+    platform: ${INSTANT_SERVER_PLATFORM:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
+    image: "${INSTANT_SERVER_IMAGE:-backendrelay/server:local}"
+    build:
+      context: ../server-rs
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:${INSTANT_SERVER_PORT:-8888}:8888"
+    # The process drains live transports before aborting; keep Docker from
+    # sending SIGKILL at its 10s default while clients reconnect elsewhere.
+    stop_grace_period: 45s
+    # The server writes upload staging files to /tmp, so it stays writable
+    # through a tmpfs while the rest of the root filesystem is read-only.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${INSTANT_SERVER_MEM_LIMIT:-2g}
+    cpus: ${INSTANT_SERVER_CPUS:-2}
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    environment:
+      WAL_HISTORY_STORAGE: pg
+      DATABASE_URL: "postgresql://${INSTANT_DB_USER:-instant}:${INSTANT_DB_PASSWORD:-instant-test}@postgres:5432/${POSTGRES_DB:-instant}?sslmode=disable"
+      CONNECTION_POOL_SIZE: ${CONNECTION_POOL_SIZE:-20}
+      INSTANT_BACKEND_URL: ${INSTANT_BACKEND_URL:-http://localhost:8888}
+      INSTANT_DASHBOARD_URL: ${INSTANT_DASHBOARD_URL:-http://localhost:3000}
+      INSTANT_SUPERUSER_EMAIL: ${INSTANT_SUPERUSER_EMAIL:-}
+      INSTANT_DASHBOARD_SIGNUP: ${INSTANT_DASHBOARD_SIGNUP:-open}
+      INSTANT_EPHEMERAL_APPS: ${INSTANT_EPHEMERAL_APPS:-true}
+      INSTANT_NIGHTLY_APP_BACKUPS: ${INSTANT_NIGHTLY_APP_BACKUPS:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
+      INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_ID: ${INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_ID:-}
+      INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_SECRET: ${INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_SECRET:-}
+      POSTMARK_TOKEN: ${POSTMARK_TOKEN:-}
+      POSTMARK_ACCOUNT_TOKEN: ${POSTMARK_ACCOUNT_TOKEN:-}
+      SENDGRID_TOKEN: ${SENDGRID_TOKEN:-}
+      INSTANT_EMAIL_PROVIDER: ${INSTANT_EMAIL_PROVIDER:-}
+      INSTANT_DASHBOARD_EMAIL_SENDER_NAME: ${INSTANT_DASHBOARD_EMAIL_SENDER_NAME:-}
+      INSTANT_DASHBOARD_EMAIL_SENDER_EMAIL: ${INSTANT_DASHBOARD_EMAIL_SENDER_EMAIL:-}
+      INSTANT_APP_EMAIL_SENDER_NAME: ${INSTANT_APP_EMAIL_SENDER_NAME:-}
+      INSTANT_APP_EMAIL_SENDER_EMAIL: ${INSTANT_APP_EMAIL_SENDER_EMAIL:-}
+      INSTANT_TEAM_EMAIL_SENDER_NAME: ${INSTANT_TEAM_EMAIL_SENDER_NAME:-}
+      INSTANT_TEAM_EMAIL_SENDER_EMAIL: ${INSTANT_TEAM_EMAIL_SENDER_EMAIL:-}
+      INSTANT_S3_ACCESS_KEY_ID: ${S3_TEST_ACCESS_KEY:-testaccesskey}
+      INSTANT_S3_SECRET_ACCESS_KEY: ${S3_TEST_SECRET_KEY:-testsecretkey}
+      INSTANT_S3_REGION: us-east-1
+      S3_ENDPOINT: http://s3:9000
+      # Override for host-side presigned URL checks; production Compose sets
+      # this to the R2/public object endpoint instead.
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-}
+      S3_BUCKET: ${S3_BUCKET:-instant-bucket}
+      S3_APP_BACKUPS_BUCKET: ${S3_APP_BACKUPS_BUCKET:-instant-backups}
+    volumes:
+      - server_secrets:/home/instant/config
+
+volumes:
+  backend-db:
+  s3_data:
+  server_secrets:

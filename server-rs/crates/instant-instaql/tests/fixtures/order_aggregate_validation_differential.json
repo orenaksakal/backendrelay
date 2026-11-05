@@ -1,0 +1,95 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/db/instaql.clj:927-1019,1131-1140,1162-1200,1224-1234 and server/test/instant/db/instaql_test.clj:254-270,305-319,405-415: order lifecycle failures are emitted in checking/indexing/indexed/typed/cardinality order; page validation precedes child compilation, children precede parent aggregate validation, traversal paths retain ancestors, and lazy root reduction stops at the first failing root",
+  "cases": [
+    {
+      "name": "all-order-lifecycle-errors-accumulate-in-source-order",
+      "admin": false,
+      "query": {"users": {"$": {"order": {"age": "asc"}}}},
+      "age_lifecycle": {
+        "checking_data_type": true,
+        "indexing": true,
+        "indexed": false,
+        "typed": false,
+        "cardinality": "many"
+      },
+      "errors": [
+        {"expected": "supported-order?", "path": ["users", "$", "order"], "message": "The `users.age` attribute is still in the process of validating its type. It must finish before ordering by the attribute."},
+        {"expected": "supported-order?", "path": ["users", "$", "order"], "message": "The `users.age` attribute is still in the process of indexing. It must finish before ordering by the attribute."},
+        {"expected": "supported-order?", "path": ["users", "$", "order"], "message": "The `users.age` attribute is not indexed. Only indexed and typed attributes can be used to order by."},
+        {"expected": "supported-order?", "path": ["users", "$", "order"], "message": "The `users.age` attribute is not typed. Only typed and indexed attributes can be used to order by."},
+        {"expected": "supported-order?", "path": ["users", "$", "order"], "message": "The `users.age` attribute has cardinality `many`. Only attributes with cardinality `one` can be used to order by."}
+      ]
+    },
+    {
+      "name": "order-errors-precede-and-mask-later-aggregate-validation",
+      "admin": false,
+      "query": {"users": {"$": {"order": {"age": "desc"}, "aggregate": "count"}}},
+      "age_lifecycle": {
+        "checking_data_type": false,
+        "indexing": true,
+        "indexed": true,
+        "typed": false,
+        "cardinality": "one"
+      },
+      "errors": [
+        {"expected": "supported-order?", "path": ["users", "$", "order"], "message": "The `users.age` attribute is still in the process of indexing. It must finish before ordering by the attribute."},
+        {"expected": "supported-order?", "path": ["users", "$", "order"], "message": "The `users.age` attribute is not typed. Only typed and indexed attributes can be used to order by."}
+      ]
+    },
+    {
+      "name": "aggregate-validation-runs-after-valid-order",
+      "admin": false,
+      "query": {"users": {"$": {"order": {"age": "asc"}, "aggregate": "count"}}},
+      "errors": [
+        {"expected": "admin?", "path": ["users", "$", "aggregate"], "message": "Aggregates are currently only available for admin queries."}
+      ]
+    },
+    {
+      "name": "aggregate-child-validation-runs-after-valid-order",
+      "admin": true,
+      "query": {
+        "users": {
+          "$": {"order": {"age": "asc"}, "aggregate": "count"},
+          "bookshelves": {}
+        }
+      },
+      "errors": [
+        {"expected": "valid-query?", "path": ["users", "$", "aggregate"], "message": "You can not combine aggregates with child queries at this time."}
+      ]
+    },
+    {
+      "name": "first-failing-root-stops-lazy-compilation",
+      "admin": false,
+      "query": {
+        "books": {"$": {"aggregate": "count"}},
+        "users": {"$": {"order": {"age": "asc"}}}
+      },
+      "age_lifecycle": {
+        "checking_data_type": true,
+        "indexing": false,
+        "indexed": true,
+        "typed": true,
+        "cardinality": "many"
+      },
+      "errors": [
+        {"expected": "admin?", "path": ["books", "$", "aggregate"], "message": "Aggregates are currently only available for admin queries."}
+      ]
+    },
+    {
+      "name": "invalid-descendant-precedes-parent-aggregate-and-keeps-full-path",
+      "admin": false,
+      "query": {
+        "users": {
+          "$": {"aggregate": "count"},
+          "bookshelves": {"$": {"aggregate": "count"}}
+        }
+      },
+      "roots_errors": [
+        {"expected": "admin?", "path": ["users", "$", "aggregate"], "message": "Aggregates are currently only available for admin queries."}
+      ],
+      "query_errors": [
+        {"expected": "admin?", "path": ["users", "bookshelves", "$", "aggregate"], "message": "Aggregates are currently only available for admin queries."}
+      ]
+    }
+  ]
+}

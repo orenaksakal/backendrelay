@@ -1,0 +1,10 @@
+{
+  "rules": [
+    {
+      "id": "expire-app-backups",
+      "status": "Enabled",
+      "filter": {"prefix": ""},
+      "expiration": {"days": 30}
+    }
+  ]
+}

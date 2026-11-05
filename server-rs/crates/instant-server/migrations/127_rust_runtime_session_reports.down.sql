@@ -1,0 +1,1 @@
+drop table rust_runtime_session_reports;

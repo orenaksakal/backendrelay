@@ -1,0 +1,28 @@
+// Containers use the `local` log driver, which does not write tailable files.
+// Alloy therefore reads container logs through the read-only Docker API proxy.
+discovery.docker "containers" {
+  host = "tcp://docker-socket-proxy:2375"
+}
+
+loki.relabel "containers" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/?(.*)"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "tcp://docker-socket-proxy:2375"
+  targets       = discovery.docker.containers.targets
+  relabel_rules = loki.relabel.containers.rules
+  forward_to    = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

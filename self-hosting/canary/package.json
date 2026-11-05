@@ -1,0 +1,14 @@
+{
+  "name": "@backendrelay/canary",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Outside-in realtime canary for BackendRelay",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "start": "node src/index.mjs",
+    "test": "node --test test"
+  }
+}

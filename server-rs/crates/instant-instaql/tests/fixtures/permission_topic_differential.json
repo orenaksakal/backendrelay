@@ -1,0 +1,105 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/db/instaql.clj:2095-2233, server/test/instant/db/instaql_test.clj:4926-4960, and server/src/instant/db/datalog.clj:2983-3017,3132-3195",
+  "denied_forms": {
+    "query": {"users":{"bookshelves":{}},"bookshelves":{}},
+    "denied_etype": "bookshelves",
+    "id_attribute": "55555555-5555-5555-5555-555555555555",
+    "relationship_attribute": "44444444-4444-4444-4444-444444444444"
+  },
+  "cases": [
+    {
+      "name": "forward-reference-path-injects-related-permission",
+      "query": {"users":{"$":{"where":{"bookshelves.order":{"$gte":1}}}}},
+      "constraints": [
+        {"etype":"bookshelves","conditions":[{"kind":"condition","path":["name"],"value":{"kind":"scalar","value":"permitted-shelf"}}]}
+      ],
+      "expected": [
+        {"path":["bookshelves","name"],"attribute":"aaaaaaaa-1111-1111-1111-111111111111","value":"permitted-shelf"}
+      ]
+    },
+    {
+      "name": "reverse-reference-path-injects-related-permission",
+      "query": {"books":{"$":{"where":{"shelf.owner.age":{"$gte":18}}}}},
+      "constraints": [
+        {"etype":"users","conditions":[{"kind":"condition","path":["handle"],"value":{"kind":"scalar","value":"permitted-user"}}]}
+      ],
+      "expected": [
+        {"path":["shelf","owner","handle"],"attribute":"22222222-2222-2222-2222-222222222222","value":"permitted-user"}
+      ]
+    },
+    {
+      "name": "multi-hop-path-injects-every-related-permission",
+      "query": {"users":{"$":{"where":{"bookshelves.books.title":"requested-title"}}}},
+      "constraints": [
+        {"etype":"bookshelves","conditions":[{"kind":"condition","path":["name"],"value":{"kind":"scalar","value":"permitted-shelf"}}]},
+        {"etype":"books","conditions":[{"kind":"condition","path":["title"],"value":{"kind":"scalar","value":"permitted-book"}}]}
+      ],
+      "expected": [
+        {"path":["bookshelves","name"],"attribute":"aaaaaaaa-1111-1111-1111-111111111111","value":"permitted-shelf"},
+        {"path":["bookshelves","books","title"],"attribute":"88888888-8888-8888-8888-888888888888","value":"permitted-book"}
+      ]
+    },
+    {
+      "name": "boolean-branch-keeps-reference-permission-local",
+      "query": {"users":{"$":{"where":{"or":[{"bookshelves.name":"requested-shelf"},{"handle":"alex"}]}}}},
+      "constraints": [
+        {"etype":"bookshelves","conditions":[{"kind":"condition","path":["name"],"value":{"kind":"scalar","value":"permitted-shelf"}}]}
+      ],
+      "expected": [
+        {"path":["bookshelves","name"],"attribute":"aaaaaaaa-1111-1111-1111-111111111111","value":"permitted-shelf"}
+      ],
+      "page": null
+    },
+    {
+      "name": "production-shaped-boolean-paths-carry-every-rule-dependency",
+      "query": {"users":{"$":{"fields":["id"],"where":{"or":[{"bookshelves.books.title":"Catch and Kill"},{"bookshelves.books.title":"The Count of Monte Cristo"}]}}}},
+      "constraints": [
+        {"etype":"users","conditions":[{"kind":"condition","path":["handle"],"value":{"kind":"scalar","value":"alex"}}]},
+        {"etype":"bookshelves","conditions":[{"kind":"or","conditions":[
+          {"kind":"condition","path":["name"],"value":{"kind":"scalar","value":"Nonfiction"}},
+          {"kind":"condition","path":["order"],"value":{"kind":"scalar","value":1}}
+        ]}]},
+        {"etype":"books","conditions":[{"kind":"condition","path":["title"],"value":{"kind":"scalar","value":"Catch and Kill"}}]}
+      ],
+      "expected": [
+        {"path":["handle"],"attribute":"22222222-2222-2222-2222-222222222222","value":"alex"},
+        {"path":["bookshelves","name"],"attribute":"aaaaaaaa-1111-1111-1111-111111111111","value":"Nonfiction"},
+        {"path":["bookshelves","order"],"attribute":"aaaaaaaa-2222-2222-2222-222222222222","value":1},
+        {"path":["bookshelves","books","title"],"attribute":"88888888-8888-8888-8888-888888888888","value":"Catch and Kill"}
+      ],
+      "page": null
+    },
+    {
+      "name": "offset-empty-page-retains-permission-and-order-dependencies",
+      "query": {"users":{"$":{"fields":["id"],"where":{"bookshelves.name":"requested"},"limit":2,"offset":999,"order":{"handle":"asc"}}}},
+      "constraints": [
+        {"etype":"users","conditions":[{"kind":"or","conditions":[
+          {"kind":"condition","path":["handle"],"value":{"kind":"scalar","value":"alex"}},
+          {"kind":"condition","path":["handle"],"value":{"kind":"scalar","value":"joe"}}
+        ]}]},
+        {"etype":"bookshelves","conditions":[{"kind":"condition","path":["name"],"value":{"kind":"scalar","value":"Nonfiction"}}]}
+      ],
+      "expected": [
+        {"path":["handle"],"attribute":"22222222-2222-2222-2222-222222222222","value":"alex"},
+        {"path":["handle"],"attribute":"22222222-2222-2222-2222-222222222222","value":"joe"},
+        {"path":["bookshelves","name"],"attribute":"aaaaaaaa-1111-1111-1111-111111111111","value":"Nonfiction"}
+      ],
+      "page":{"attribute":"22222222-2222-2222-2222-222222222222","reverse":false,"empty_has_previous":true}
+    },
+    {
+      "name": "last-page-retains-boolean-permission-dependencies",
+      "query": {"users":{"$":{"fields":["id"],"last":3,"order":{"handle":"desc"}}}},
+      "constraints": [
+        {"etype":"users","conditions":[{"kind":"or","conditions":[
+          {"kind":"condition","path":["handle"],"value":{"kind":"scalar","value":"alex"}},
+          {"kind":"condition","path":["handle"],"value":{"kind":"scalar","value":"joe"}}
+        ]}]}
+      ],
+      "expected": [
+        {"path":["handle"],"attribute":"22222222-2222-2222-2222-222222222222","value":"alex"},
+        {"path":["handle"],"attribute":"22222222-2222-2222-2222-222222222222","value":"joe"}
+      ],
+      "page":{"attribute":"22222222-2222-2222-2222-222222222222","reverse":true,"empty_has_previous":false}
+    }
+  ]
+}

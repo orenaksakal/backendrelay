@@ -1,0 +1,2 @@
+drop table rust_database_failover_participants;
+drop table rust_database_failovers;

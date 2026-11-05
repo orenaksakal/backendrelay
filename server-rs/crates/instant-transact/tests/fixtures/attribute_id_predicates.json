@@ -1,0 +1,40 @@
+{
+  "source": "instantdb/instant@4e0a1bd8 server/src/instant/db/model/triple.clj:29-38, server/src/instant/db/model/attr.clj:62-64, and server/src/instant/db/transaction.clj:32-69; predicates captured after coerce! with Clojure 1.12.0 and spec.alpha 0.3.218",
+  "cases": [
+    {
+      "name": "direct-attribute-id-predicates-retain-operation-and-input-order",
+      "input": [
+        ["add-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "not-a-uuid", "value"],
+        ["deep-merge-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", null, {}],
+        ["retract-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", {"id": "not-a-uuid"}, "value"],
+        ["delete-attr", 7],
+        ["restore-attr", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+      ],
+      "errors": [
+        {"path": [0, 2], "message": "uuid?"},
+        {"path": [1, 2], "message": "uuid?"},
+        {"path": [2, 2], "message": "uuid?"},
+        {"path": [3, 1], "message": "uuid?"},
+        {"path": [4, 1], "message": "uuid?"}
+      ]
+    },
+    {
+      "name": "attribute-id-predicates-follow-friendly-entity-errors",
+      "input": [
+        ["add-triple", "not-an-entity-uuid", "not-an-attribute-uuid", "value"],
+        ["delete-entity", "still-not-an-entity-uuid"]
+      ],
+      "errors": [
+        {
+          "path": [0, 1],
+          "message": "Invalid entity ID 'not-an-entity-uuid'. Entity IDs must be UUIDs. Use id() or lookup() to generate a valid UUID."
+        },
+        {"path": [0, 2], "message": "uuid?"},
+        {
+          "path": [1, 1],
+          "message": "Invalid entity ID 'still-not-an-entity-uuid'. Entity IDs must be UUIDs. Use id() or lookup() to generate a valid UUID."
+        }
+      ]
+    }
+  ]
+}

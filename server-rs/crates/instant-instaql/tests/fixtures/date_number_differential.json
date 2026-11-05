@@ -1,0 +1,23 @@
+{
+  "catalog": {
+    "attributes": [
+      {"id":"11111111-1111-1111-1111-111111111111","etype":"events","label":"id","value_type":"blob","cardinality":"one","unique":true,"indexed":false,"required":true,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"55555555-5555-5555-5555-555555555555","etype":"events","label":"happenedAt","value_type":"blob","cardinality":"one","unique":false,"indexed":true,"required":false,"checked_data_type":"date","indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null}
+    ]
+  },
+  "cases": [
+    {"name":"positive-fractional-equality","query":{"events":{"$":{"where":{"happenedAt":1.9}}}},"expected_values":["1970-01-01T00:00:00.001+00:00"]},
+    {"name":"negative-fractional-comparison","query":{"events":{"$":{"where":{"happenedAt":{"$gt":-1.9}}}}},"expected_values":["1969-12-31T23:59:59.999+00:00"]},
+    {"name":"sub-millisecond-negation","query":{"events":{"$":{"where":{"happenedAt":{"$not":0.9}}}}},"expected_values":["1970-01-01T00:00:00+00:00"]},
+    {"name":"fractional-set","query":{"events":{"$":{"where":{"happenedAt":{"$in":[1.9,-1.9]}}}}},"expected_values":["1970-01-01T00:00:00.001+00:00","1969-12-31T23:59:59.999+00:00"]},
+    {"name":"maximum-java-long-epoch","query":{"events":{"$":{"where":{"happenedAt":9223372036854775807}}}},"expected_values":["+292278994-08-17T07:12:55.807Z"]},
+    {"name":"minimum-java-long-epoch-comparison","query":{"events":{"$":{"where":{"happenedAt":{"$gte":-9223372036854775808}}}}},"expected_values":["-292275055-05-16T16:47:04.192Z"]},
+    {"name":"maximum-extended-iso-year","query":{"events":{"$":{"where":{"happenedAt":"+999999999-12-31T23:59:59.999999999Z"}}}},"expected_values":["+999999999-12-31T23:59:59.999999999Z"]},
+    {"name":"minimum-extended-iso-year-comparison","query":{"events":{"$":{"where":{"happenedAt":{"$lte":"-999999999-01-01T00:00:00Z"}}}}},"expected_values":["-999999999-01-01T00:00:00Z"]},
+    {"name":"extended-year-offset-normalizes-to-utc","query":{"events":{"$":{"where":{"happenedAt":"+292278994-08-17T08:12:55.807+01:00"}}}},"expected_values":["+292278994-08-17T07:12:55.807Z"]},
+    {"name":"region-overlap-earlier-offset","query":{"events":{"$":{"where":{"happenedAt":"2024-11-03T01:30:00-04:00[America/New_York]"}}}},"expected_values":["2024-11-03T05:30:00+00:00"]},
+    {"name":"region-overlap-later-offset-comparison","query":{"events":{"$":{"where":{"happenedAt":{"$gte":"2024-11-03T01:30:00-05:00[America/New_York]"}}}}},"expected_values":["2024-11-03T06:30:00+00:00"]},
+    {"name":"region-gap-keeps-explicit-offset","query":{"events":{"$":{"where":{"happenedAt":"2024-03-10T02:30:00-05:00[America/New_York]"}}}},"expected_values":["2024-03-10T07:30:00+00:00"]},
+    {"name":"extended-year-region-suffix","query":{"events":{"$":{"where":{"happenedAt":"+292278994-08-17T08:12:55.807+01:00[Europe/Paris]"}}}},"expected_values":["+292278994-08-17T07:12:55.807Z"]}
+  ]
+}

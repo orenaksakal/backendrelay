@@ -1,0 +1,40 @@
+global:
+  resolve_timeout: 5m
+route:
+  receiver: pushover-warning
+  group_by: [alertname, job]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['alertname="Watchdog"']
+      receiver: external-deadman
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1m
+    - matchers: ['severity="critical"']
+      receiver: pushover-critical
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 1h
+receivers:
+  - name: pushover-critical
+    # Priority 2 repeats every retry interval until the phone acknowledges it
+    # and breaks through quiet hours. Secrets only come from the mounted files.
+    pushover_configs:
+      - user_key_file: /run/secrets/pushover-user-key
+        token_file: /run/secrets/pushover-token
+        priority: 2
+        retry: 60s
+        expire: 1h
+        send_resolved: true
+  - name: pushover-warning
+    pushover_configs:
+      - user_key_file: /run/secrets/pushover-user-key
+        token_file: /run/secrets/pushover-token
+        priority: 0
+        send_resolved: true
+  - name: external-deadman
+    webhook_configs:
+      - url_file: /run/secrets/deadman-webhook
+        send_resolved: false

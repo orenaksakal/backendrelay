@@ -1,0 +1,9 @@
+.env
+.astro/
+.tanstack/
+.output/
+dist-site/
+public/fonts/BerkeleyMono*
+# Application logs UI source (the root ignores runtime logs directories).
+!components/dash/logs/
+!components/dash/logs/**

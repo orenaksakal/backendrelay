@@ -1,0 +1,4 @@
+# Explicit configuration prevents a local trivy.yaml from silently narrowing scans.
+ignore-unfixed: false
+skip-db-update: false
+skip-java-db-update: false

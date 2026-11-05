@@ -1,0 +1,47 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/db/instaql.clj:250-311 uses clojure.string/split without a limit, whose zero-limit Java regex behavior removes trailing empty path segments before attribute resolution",
+  "cases": [
+    {
+      "name": "direct-trailing-dot",
+      "query": {"users": {"$": {"where": {"handle.": "alex"}}}},
+      "canonical": {"users": {"$": {"where": {"handle": "alex"}}}},
+      "missing": false
+    },
+    {
+      "name": "direct-multiple-trailing-dots",
+      "query": {"users": {"$": {"where": {"handle..": "alex"}}}},
+      "canonical": {"users": {"$": {"where": {"handle": "alex"}}}},
+      "missing": false
+    },
+    {
+      "name": "relationship-trailing-dot",
+      "query": {"users": {"$": {"where": {"bookshelves.name.": "Fiction"}}}},
+      "canonical": {"users": {"$": {"where": {"bookshelves.name": "Fiction"}}}},
+      "missing": false
+    },
+    {
+      "name": "negation-trailing-dot",
+      "query": {"users": {"$": {"where": {"handle.": {"$not": "alex"}}}}},
+      "canonical": {"users": {"$": {"where": {"handle": {"$not": "alex"}}}}},
+      "missing": false
+    },
+    {
+      "name": "entity-prefix-trailing-dot",
+      "query": {"users": {"$": {"where": {"bookshelves.$entityIdStartsWith.": "abc"}}}},
+      "canonical": {"users": {"$": {"where": {"bookshelves.$entityIdStartsWith": "abc"}}}},
+      "missing": false
+    },
+    {
+      "name": "leading-empty-segment-is-retained",
+      "query": {"users": {"$": {"where": {".handle": "alex"}}}},
+      "canonical": null,
+      "missing": true
+    },
+    {
+      "name": "delimiter-only-path-becomes-missing-schema",
+      "query": {"users": {"$": {"where": {".": "alex"}}}},
+      "canonical": null,
+      "missing": true
+    }
+  ]
+}

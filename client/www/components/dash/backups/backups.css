@@ -1,0 +1,199 @@
+.backup-overview {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  border-top: 1px solid var(--dash-line);
+  border-bottom: 1px solid var(--dash-line);
+}
+.backup-overview > div {
+  padding: 22px 24px;
+  border-right: 1px solid var(--dash-line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.backup-overview > div:first-child {
+  padding-left: 0;
+}
+.backup-overview > div:last-child {
+  border: 0;
+}
+.backup-overview span {
+  color: var(--dash-muted);
+  font-size: 13px;
+}
+.backup-overview strong {
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.backup-overview .backup-latest {
+  font-size: 18px;
+  margin-top: 6px;
+}
+.backup-overview small {
+  color: var(--dash-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.backup-warning {
+  color: var(--dash-warning);
+}
+.backup-refresh {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.backup-refresh svg {
+  width: 14px;
+  height: 14px;
+}
+.backup-job-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--dash-muted);
+}
+.backup-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dash-muted);
+}
+.backup-history,
+.backup-active {
+  border: 1px solid var(--dash-line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--dash-surface);
+}
+.backup-history .wb-toolbar > input {
+  width: min(320px, 100%);
+}
+.backup-snapshot-table td {
+  font-family: inherit;
+  font-size: 13px;
+}
+.backup-snapshot-table td:first-child strong {
+  display: block;
+  font-weight: 500;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.backup-snapshot-table td:first-child code {
+  display: block;
+  font-size: 12px;
+  color: var(--dash-muted);
+  margin-top: 7px;
+}
+.backup-snapshot-table small {
+  display: block;
+  font-size: 12px;
+  color: var(--dash-muted);
+  margin-top: 7px;
+}
+.backup-snapshot-table td > .wb-tag {
+  display: inline-block !important;
+}
+.backup-expiry-warning {
+  color: var(--dash-warning);
+}
+.backup-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.backup-recovery-help {
+  font-size: 13px;
+  color: var(--dash-muted);
+}
+.backup-recovery-help summary {
+  cursor: pointer;
+}
+.backup-recovery-help > div {
+  max-width: 78ch;
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  line-height: 1.6;
+}
+@media (max-width: 700px) {
+  .backup-overview {
+    grid-template-columns: 1fr;
+  }
+  .backup-overview > div {
+    padding: 16px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--dash-line);
+  }
+}
+
+.backup-schedule {
+  border: 1px solid var(--dash-line);
+  border-radius: 10px;
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+.backup-schedule .wb-toolbar {
+  padding: 0;
+  border: 0;
+}
+.backup-schedule h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.backup-schedule p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.backup-schedule form {
+  display: grid;
+  gap: 16px;
+}
+.backup-schedule-fields {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 16px;
+  border: 0;
+  min-width: 0;
+}
+.backup-schedule-fields label,
+.backup-schedule-timing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+.backup-schedule-fields input,
+.backup-schedule-fields .dashboard-select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--dash-line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: var(--dash-surface);
+  color: var(--dash-ink);
+}
+.backup-schedule-fields input,
+.backup-schedule code {
+  font-family: monospace;
+}
+.backup-schedule-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+@media (max-width: 640px) {
+  .backup-schedule-fields {
+    grid-template-columns: 1fr;
+  }
+  .backup-schedule-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name":"backendrelay-railway-loadtest",
+  "private":true,
+  "type":"module",
+  "scripts":{"test":"node --test *.test.mjs"},
+  "dependencies":{"@instantdb/core":"1.0.67","ws":"8.18.3"}
+}

@@ -1,0 +1,27 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/db/datalog.clj:305-336 and server/test/instant/db/instaql_test.clj:1538-1611",
+  "cases": [
+    {
+      "name": "direct-reference-equality",
+      "query": {"users":{"$":{"where":{"bookshelves":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}}}},
+      "expected": [
+        {"index":"vae","attribute":"44444444-4444-4444-4444-444444444444","values":["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]}
+      ]
+    },
+    {
+      "name": "direct-reference-in",
+      "query": {"users":{"$":{"where":{"bookshelves":{"$in":["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]}}}}},
+      "expected": [
+        {"index":"vae","attribute":"44444444-4444-4444-4444-444444444444","values":["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]}
+      ]
+    },
+    {
+      "name": "terminal-reference-path",
+      "query": {"users":{"$":{"where":{"bookshelves.books":"cccccccc-cccc-4ccc-8ccc-cccccccccccc"}}}},
+      "expected": [
+        {"index":"vae","attribute":"66666666-6666-6666-6666-666666666666","values":["cccccccc-cccc-4ccc-8ccc-cccccccccccc"]},
+        {"index":"vae","attribute":"44444444-4444-4444-4444-444444444444","values":null}
+      ]
+    }
+  ]
+}

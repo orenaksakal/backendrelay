@@ -1,0 +1,833 @@
+{
+  "uid": "backendrelay-single-vps",
+  "title": "BackendRelay single VPS",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, surface) (rate(backendrelay_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Request errors",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (surface) (rate(backendrelay_http_requests_total{status_class=\"5xx\"}[5m]))",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Realtime connections",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_sessions",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Pool acquisition p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, rate(backendrelay_pool_acquisition_seconds_bucket[5m]))",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Pool pending acquisitions",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_pool_waiting",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "WAL retention",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_wal_retained_bytes",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Cache weight",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_cache_weight_bytes",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "Realtime queues",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_outbound_queued or backendrelay_transact_queued or backendrelay_refresh_queued",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "title": "Admission rejections",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(backendrelay_query_admission_rejections_total[5m]) or rate(backendrelay_transaction_admission_rejections_total[5m])",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "title": "Cleanup age",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_cleanup_oldest_retry_age_seconds",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "title": "Off-host backup age",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - backendrelay_backup_snapshot_seconds",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 14,
+      "title": "Available disk",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 32,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay|squashfs\"}",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 15,
+      "title": "Host CPU busy",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 32,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "1-avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 16,
+      "title": "Host available memory",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "node_memory_MemAvailable_bytes",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 17,
+      "title": "Authentication policy safe",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 40,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_auth_policy_safe",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 18,
+      "title": "Service scrape health",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 40,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up",
+          "legendFormat": "{{surface}}{{consumer}}{{job}}{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 100,
+      "title": "Realtime",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 101,
+      "title": "Realtime refresh waiters",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 49,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (consumer) (backendrelay_refresh_waiting)",
+          "legendFormat": "{{consumer}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 102,
+      "title": "Realtime refresh rejections",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 49,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (consumer) (rate(backendrelay_refresh_admission_rejections_total[5m]))",
+          "legendFormat": "{{consumer}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 103,
+      "title": "Realtime receive oldest wait",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 49,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (consumer) (backendrelay_receive_oldest_wait_ms)",
+          "legendFormat": "{{consumer}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 104,
+      "title": "WebSocket exits by reason",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 57,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (reason) (rate(backendrelay_websocket_exits_total[5m]))",
+          "legendFormat": "{{reason}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 105,
+      "title": "Result cache bytes against budget",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 57,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_result_cache_bytes",
+          "legendFormat": "used"
+        },
+        {
+          "refId": "B",
+          "expr": "backendrelay_result_cache_max_bytes",
+          "legendFormat": "budget"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 200,
+      "title": "Per app",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 65,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 201,
+      "title": "Per-app realtime sessions",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 66,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_app_sessions",
+          "legendFormat": "{{app}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 202,
+      "title": "Per-app realtime operations",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 66,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (app) (rate(backendrelay_app_ops_total[5m]))",
+          "legendFormat": "{{app}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 203,
+      "title": "Per-app database time",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 66,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (app) (rate(backendrelay_app_db_seconds_total[5m]))",
+          "legendFormat": "{{app}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 204,
+      "title": "Per-app errors",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 74,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (app, surface) (rate(backendrelay_app_errors_total[5m]))",
+          "legendFormat": "{{app}} {{surface}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 205,
+      "title": "Per-app writes per minute",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 74,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_app_writes_per_minute",
+          "legendFormat": "{{app}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 206,
+      "title": "Per-app triples bytes",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 74,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_app_triples_bytes",
+          "legendFormat": "{{app}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 207,
+      "title": "Per-app webhook queue",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "backendrelay-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 82,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "backendrelay_app_webhook_events_pending",
+          "legendFormat": "{{app}} pending"
+        },
+        {
+          "refId": "B",
+          "expr": "backendrelay_app_webhook_events_failed",
+          "legendFormat": "{{app}} failed"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

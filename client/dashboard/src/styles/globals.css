@@ -1,0 +1,195 @@
+/*
+ * BackendRelay dashboard design tokens.
+ *
+ * Colour, type scale and shape come from the dashboard spec (B.1-B.3). The
+ * contrast unit test (`globals.test.ts`) reads these values; change a lightness
+ * only when that test fails. Nothing renders below 12px.
+ */
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+/* Dark mode is a class on <html>, applied before paint by public/theme-init.js. */
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  color-scheme: light;
+
+  /* Shape. Controls (rounded-md) are 6px, cards and overlays (rounded-lg) 8px. */
+  --radius: 0.5rem;
+
+  --background: oklch(0.985 0 0);
+  --foreground: oklch(0.165 0 0);
+  --card: oklch(1 0 0);
+  --sidebar: oklch(0.97 0 0);
+  --muted: oklch(0.955 0 0);
+  --muted-foreground: oklch(0.48 0 0);
+  --border: oklch(0.91 0 0);
+  /* 3.2:1 on --background; 0.66 only reached 2.98:1 (globals.test.ts). */
+  --input: oklch(0.64 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.48 0.19 260);
+  --ring: oklch(0.55 0.2 260);
+  --destructive: oklch(0.48 0.22 27);
+  --success: oklch(0.46 0.14 150);
+  --warning: oklch(0.48 0.12 70);
+  --info: oklch(0.52 0.15 250);
+
+  /* Okabe-Ito; charts only, identical in both themes. */
+  --chart-1: #0072b2;
+  --chart-2: #e69f00;
+  --chart-3: #009e73;
+  --chart-4: #d55e00;
+  --chart-5: #cc79a7;
+
+  /*
+   * Stacking order. Use these instead of raw z-index numbers. In-page content
+   * never leaves the small end of the scale (`--z-sticky`); overlays start well
+   * above it, so no page element or third-party layer can cover an open sheet
+   * or dialog. Menus, selects, popovers and tooltips portalled from inside a
+   * sheet or dialog must paint above the surface that opened them, so
+   * `--z-popover` sits above both (`DASH.fix8`). Backdrops share their
+   * surface's layer and stay behind it through DOM order.
+   */
+  --z-content: 0;
+  --z-sticky: 10;
+  --z-drawer: 1000;
+  --z-sheet: 1100;
+  --z-dialog: 1200;
+  --z-popover: 1300;
+  --z-toast: 1400;
+  --z-command: 1500;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.965 0 0);
+  --card: oklch(0.185 0 0);
+  --sidebar: oklch(0.165 0 0);
+  --muted: oklch(0.24 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(0.5 0 0);
+  --primary: oklch(0.96 0 0);
+  --primary-foreground: oklch(0.18 0 0);
+  --accent: oklch(0.72 0.14 260);
+  --ring: oklch(0.7 0.15 260);
+  --destructive: oklch(0.7 0.19 22);
+  --success: oklch(0.75 0.15 150);
+  --warning: oklch(0.8 0.14 80);
+  --info: oklch(0.75 0.12 250);
+}
+
+@theme inline {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-sidebar: var(--sidebar);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Meta, captions and badges: 12/16 medium. */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-xs--font-weight: 500;
+}
+
+/* Page title (h1): 20/28 semibold. */
+@utility text-page {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+}
+
+/* Section title (h2 in cards): 15/22 semibold. */
+@utility text-section {
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  font-weight: 600;
+}
+
+/* Table cells and dense UI: 13/20 regular. */
+@utility text-cell {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  font-weight: 400;
+}
+
+@layer base {
+  html {
+    /* Sticky headers and toasts must never cover the focused element. */
+    scroll-padding-top: 56px;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans text-sm antialiased;
+    /* cv11 and ss02 make 1, l and I distinguishable in Inter. */
+    font-feature-settings: 'cv11', 'ss02';
+  }
+
+  /* Code, IDs and values use JetBrains Mono without Inter's stylistic sets. */
+  .font-mono,
+  code,
+  kbd,
+  pre,
+  samp {
+    font-feature-settings: normal;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--accent) 24%, transparent);
+  }
+
+  /*
+   * Base UI keeps a popup mounted until its exit animation completes. The
+   * closing copy sits above the surface that opened next, so it must never take
+   * pointers (DASH.fix6). `[data-closed]` applies for the whole exit, including
+   * when the animation never runs, for example under reduced motion.
+   */
+  [data-ending-style],
+  [data-closed] {
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "entry (gzip)",
+    "path": "dist/client/assets/index-*.js",
+    "limit": "250 kB",
+    "gzip": true
+  },
+  {
+    "name": "explorer chunk (gzip)",
+    "path": [
+      "dist/client/assets/_authed.apps._appId.explorer-*.js",
+      "dist/client/assets/explorer-grid-*.js",
+      "dist/client/assets/data-grid-*.js"
+    ],
+    "limit": "420 kB",
+    "gzip": true
+  },
+  {
+    "name": "editor chunk (gzip)",
+    "path": "dist/client/assets/code-editor-*.js",
+    "limit": "120 kB",
+    "gzip": true
+  },
+  {
+    "name": "styles (gzip)",
+    "path": "dist/client/assets/*.css",
+    "limit": "40 kB",
+    "gzip": true
+  }
+]

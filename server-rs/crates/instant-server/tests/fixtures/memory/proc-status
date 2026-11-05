@@ -1,0 +1,7 @@
+Name:	instant-server
+Umask:	0022
+State:	S (sleeping)
+VmPeak:	 4194304 kB
+VmSize:	 2097152 kB
+VmRSS:	   65536 kB
+Threads:	16

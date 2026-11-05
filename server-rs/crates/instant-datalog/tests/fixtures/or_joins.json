@@ -1,0 +1,129 @@
+{
+  "nested_join": {
+    "name": "joins a later pattern to every viable OR branch",
+    "source": "server/src/instant/db/datalog.clj:947-990,2289-2297",
+    "join_symbol": "?e",
+    "pattern_index": 3,
+    "pattern": {
+      "index": { "key": "ea" },
+      "components": [
+        { "kind": "variable", "value": "?e" }
+      ]
+    },
+    "branches": [
+      [
+        {
+          "kind": "path",
+          "value": {
+            "pattern_index": 0,
+            "triple_index": 0,
+            "component": "entity",
+            "reference_value": false
+          }
+        },
+        {
+          "kind": "path",
+          "value": {
+            "pattern_index": 1,
+            "triple_index": 1,
+            "component": "attribute",
+            "reference_value": false
+          }
+        }
+      ],
+      [
+        {
+          "kind": "path",
+          "value": {
+            "pattern_index": 2,
+            "triple_index": 2,
+            "component": "value",
+            "reference_value": true
+          }
+        }
+      ]
+    ],
+    "expected": [
+      [
+        ":or",
+        [
+          ":and",
+          [":=", ":entity-id", ":match-0-entity-id"],
+          [":=", ":entity-id", ":match-1-attr-id"]
+        ],
+        [
+          ":and",
+          [":=", ":entity-id", [":json_uuid_to_uuid", ":match-2-value"]]
+        ]
+      ]
+    ]
+  },
+  "gather_join": {
+    "name": "fully qualifies and gathers every OR branch",
+    "source": "server/src/instant/db/datalog.clj:1012-1061",
+    "join_symbol": "?e",
+    "destination": [
+      {
+        "kind": "path",
+        "value": {
+          "pattern_index": 0,
+          "triple_index": 0,
+          "component": "entity",
+          "reference_value": false
+        }
+      }
+    ],
+    "branches": [
+      [
+        {
+          "kind": "path",
+          "value": {
+            "pattern_index": 1,
+            "triple_index": 0,
+            "component": "entity",
+            "reference_value": false
+          }
+        }
+      ],
+      [
+        {
+          "kind": "path",
+          "value": {
+            "pattern_index": 2,
+            "triple_index": 2,
+            "component": "value",
+            "reference_value": true
+          }
+        }
+      ]
+    ],
+    "expected": [
+      ":or",
+      [
+        ":and",
+        [
+          ":and",
+          [
+            ":and",
+            [":=", ":match-1-entity-id", ":match-0-entity-id"]
+          ]
+        ]
+      ],
+      [
+        ":and",
+        [
+          ":and",
+          [
+            ":and",
+            [
+              ":=",
+              [":json_uuid_to_uuid", ":match-2-value"],
+              ":match-0-entity-id"
+            ]
+          ]
+        ]
+      ]
+    ]
+  }
+}
+

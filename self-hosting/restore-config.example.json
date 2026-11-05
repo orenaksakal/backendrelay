@@ -1,0 +1,15 @@
+{
+  "disposable": true,
+  "scratchDirectory": "/srv/restore-scratch",
+  "minimumFreeBytes": 32212254720,
+  "maximumArchiveBytes": 1099511627776,
+  "bundleSha256": "REPLACE_WITH_OFFHOST_RECEIPT_CHECKSUM",
+  "databases": {"primary": "restore-primary"},
+  "directories": {
+    "server-secrets": {"path": "/srv/restore/server-secrets", "uid": 1000, "gid": 1000},
+    "configuration": {"path": "/srv/restore/configuration", "uid": 0, "gid": 0}
+  },
+  "composeServices": {"server": "server", "dashboard": "www", "primary": "postgres"},
+  "startCommand": ["docker", "compose", "--project-name", "backendrelay-restore", "--env-file", "/srv/restore/configuration/compose.env", "--file", "/srv/restore/configuration/compose.yml", "--file", "/etc/backendrelay/restore-volumes.yml", "--file", "/srv/restore/configuration/backendrelay-restored-images.yml", "up", "-d", "--no-build"],
+  "verifyCommand": ["/usr/local/sbin/backendrelay-verify-restored-service"]
+}

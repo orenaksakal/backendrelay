@@ -1,0 +1,11 @@
+[Unit]
+Description=BackendRelay weekly scale regression (scale-local)
+Documentation=file://%h/Projects/backendrelay/self-hosting/scale-local/README.md
+
+[Service]
+Type=oneshot
+Nice=10
+# stack.sh and the generator each need 65,536 open files at 10,000 sessions.
+LimitNOFILE=65536
+TimeoutStartSec=60min
+ExecStart=%h/Projects/backendrelay/self-hosting/scale-local/weekly.sh

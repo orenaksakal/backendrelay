@@ -1,0 +1,247 @@
+groups:
+  - name: backendrelay
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels: {severity: none}
+        annotations: {summary: External service must alert when this heartbeat disappears}
+      - alert: ServiceUnavailable
+        expr: up == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: A required scrape target is unavailable}
+      - alert: RequestErrors
+        expr: sum(rate(backendrelay_http_requests_total{status_class="5xx"}[5m])) / clamp_min(sum(rate(backendrelay_http_requests_total[5m])), 0.001) > 0.01
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: Server errors exceed one percent}
+      - alert: DatabaseUnavailable
+        expr: pg_up == 0 or absent(pg_up{instance="postgres-exporter:9187"})
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: A required PostgreSQL database is unavailable or unobserved}
+      - alert: DatabaseMetricsFailed
+        expr: pg_exporter_last_scrape_error > 0 or absent(backendrelay_wal_retained_bytes)
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: Required database metrics are failing or missing; check exporter grants and queries}
+      - alert: PostgresConnectionsHigh
+        expr: backendrelay_postgres_connections_used / clamp_min(backendrelay_postgres_connections_max, 1) > 0.8
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: PostgreSQL connections exceed 80% of max_connections}
+      - alert: PostgresLongTransaction
+        expr: backendrelay_postgres_longest_transaction_seconds > 300
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: A client transaction has been open for more than five minutes}
+      - alert: PostgresIdleInTransaction
+        expr: backendrelay_postgres_idle_in_transaction_seconds > 60
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: A session has been idle in transaction for more than a minute}
+      - alert: PostgresDeadlocks
+        expr: increase(pg_stat_database_deadlocks[10m]) > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: PostgreSQL recorded deadlocks in the last ten minutes}
+      - alert: TriplesDeadTuplesHigh
+        expr: pg_stat_user_tables_n_dead_tup{relname="triples"} / clamp_min(pg_stat_user_tables_n_dead_tup{relname="triples"} + pg_stat_user_tables_n_live_tup{relname="triples"}, 1) > 0.2
+        for: 15m
+        labels: {severity: warning}
+        annotations: {summary: Dead tuples are more than 20% of the triples table}
+      - alert: DatabaseSizeGrowth
+        expr: (max by (datname) (pg_database_size_bytes{datname!~"template.*|postgres"}) - max by (datname) (pg_database_size_bytes{datname!~"template.*|postgres"} offset 1d)) / clamp_min(max by (datname) (pg_database_size_bytes{datname!~"template.*|postgres"} offset 1d), 1) > 0.2
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: A PostgreSQL database grew more than 20% in the last day}
+      - alert: RequestLatency
+        expr: histogram_quantile(0.95, sum by (le, surface) (rate(backendrelay_http_request_duration_seconds_bucket{surface!="health"}[5m]))) > 0.75
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: HTTP response-header p95 exceeds 750 ms}
+      - alert: PoolPressure
+        expr: backendrelay_pool_waiting > 10
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: Database acquisition pressure is sustained}
+      - alert: ServerMemoryHigh
+        # The server exports its resident set and the cgroup limit. The limit
+        # gauge is absent when the container is unlimited, so the alert only
+        # fires for a configured memory limit.
+        expr: backendrelay_process_resident_memory_bytes / clamp_min(backendrelay_process_memory_limit_bytes, 1) > 0.8
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: The server process uses more than 80% of its container memory limit}
+      - alert: AdmissionPressure
+        expr: sum(rate(backendrelay_query_admission_rejections_total[5m]) + rate(backendrelay_transaction_admission_rejections_total[5m])) > 1
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: Realtime admission is rejecting work}
+      - alert: RealtimeRefreshBacklog
+        expr: max by (consumer) (backendrelay_refresh_waiting) > 50
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: Realtime refresh waiters are backed up}
+      - alert: RealtimeRefreshRejected
+        expr: sum by (consumer) (increase(backendrelay_refresh_admission_rejections_total[10m])) > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: Realtime refresh admission rejected work}
+      - alert: RealtimeReceiveWait
+        expr: max by (consumer) (backendrelay_receive_oldest_wait_ms) > 5000
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: The oldest realtime receive batch has waited more than five seconds}
+      - alert: WebsocketExitsHigh
+        expr: sum by (reason) (rate(backendrelay_websocket_exits_total{reason!~"peer-close|inbound-eof"}[5m])) > 0.5
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: WebSocket loops are exiting abnormally by reason}
+      - alert: CacheBudgetPressure
+        expr: backendrelay_result_cache_bytes / clamp_min(backendrelay_result_cache_max_bytes, 1) > 0.9 and backendrelay_result_cache_max_bytes > 0
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: The process-wide result cache is above 90% of its byte budget}
+      - alert: ProcessPanics
+        expr: increase(backendrelay_panics_total[10m]) > 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: The server process panicked; inspect the JSON log for the location and thread}
+      - alert: CleanupBacklog
+        expr: backendrelay_cleanup_oldest_retry_age_seconds > 120
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: Realtime cleanup retries are not draining}
+      - alert: WalRetentionHigh
+        expr: backendrelay_wal_retained_bytes > 1073741824
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: Logical replication retains more than 1 GiB of WAL}
+      - alert: InvalidatorSlotsMissing
+        # The expected replica count is exported next to the slot counts, so a
+        # cluster renders monitoring/slot_queries.py --expected-replicas <n>.
+        expr: backendrelay_invalidator_slots_active < backendrelay_slot_expected_replicas
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: Fewer invalidator slots are active than expected replicas}
+      - alert: AggregatorSlotMissing
+        expr: backendrelay_aggregator_slot_present == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: The shared aggregator replication slot is missing}
+      - alert: ReplicationSlotInactive
+        # PostgreSQL records no last-consumer timestamp per slot, so the
+        # inactivity duration is measured by this rule's evaluation window.
+        expr: backendrelay_slot_active == 0
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: A replication slot has had no consumer for ten minutes}
+      - alert: ReplicationSlotUnhealthy
+        expr: backendrelay_slot_wal_status_reserved == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: A replication slot's wal_status is not reserved}
+      - alert: RequiredSlotInvalid
+        expr: backendrelay_slot_invalid > 0 or backendrelay_slot_wrong_database_or_type > 0 or backendrelay_slot_uninitialized > 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: A replication slot is invalid or does not have a usable logical position}
+      - alert: RequiredSlotStalled
+        expr: (backendrelay_slot_pending_bytes > 1048576) and (changes(backendrelay_slot_confirmed_bytes[10m]) == 0) and (backendrelay_slot_active == 1)
+        for: 10m
+        labels: {severity: critical}
+        annotations: {summary: An active consumer is not acknowledging its WAL backlog}
+      - alert: InvalidationStreamFlapping
+        expr: increase(backendrelay_invalidation_stream_restarts_total[10m]) > 3
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: The invalidation replication stream is restarting repeatedly; readiness stays withheld until it stabilizes}
+      - alert: DiskHeadroom
+        expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} < 10737418240 or node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes < 0.15
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: Host filesystem is below required disk headroom}
+      - alert: BackupStale
+        expr: time() - backendrelay_backup_snapshot_seconds > 86400 or absent(backendrelay_backup_snapshot_seconds) or absent(backendrelay_backup_offhost_completed_seconds)
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: Verified off-host backup is missing or older than 24 hours}
+      - alert: WalArchiveFailing
+        # archived_count is only non-zero once archive_mode has pushed WAL, so
+        # this stays quiet when archiving is intentionally off.
+        expr: increase(pg_stat_archiver_failed_count[15m]) > 0 or (pg_stat_archiver_archived_count > 0 and pg_stat_archiver_last_archive_age > 600)
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: PostgreSQL WAL archiving is failing or the last archive is over ten minutes old}
+      - alert: AlertDeliveryFailed
+        expr: increase(alertmanager_notifications_failed_total[5m]) > 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: Alertmanager could not deliver notifications}
+      - alert: TaskStale
+        # Scheduled tasks have different cadences, so the threshold is chosen
+        # per cadence group. A zero timestamp means the task has not succeeded
+        # since process start and is not yet stale.
+        expr: |
+          (
+            time() - backendrelay_task_last_success_timestamp_seconds{task=~"native-gauges|http-response-policy-refresh|indexing-recovery|backup-pool-refresh|webhook-pending|webhook-retries|webhook-stuck-recovery|backup-recovery|restore-recovery|triples-size-collection"} > 3600
+            or time() - backendrelay_task_last_success_timestamp_seconds{task=~"custodian-reaper|storage-sweep|rate-limit-key-sweep|replication-slot-cleanup|oauth-metadata-refresh|dashboard-identity-policy-refresh|wal-log-truncator"} > 10800
+            or time() - backendrelay_task_last_success_timestamp_seconds{task=~"history-truncator|daily-backup|daily-metrics|hard-deletion-sweep|ephemeral-app-sweep|sender-domain-recheck"} > 259200
+          )
+          and backendrelay_task_last_success_timestamp_seconds > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: A scheduled task has not succeeded within its expected interval}
+      - alert: TaskFailing
+        # Covers tasks that never succeed (TaskStale ignores a zero timestamp):
+        # failures in the last hour with no success at all in that hour.
+        expr: |
+          sum by (task) (increase(backendrelay_task_runs_total{outcome=~"failure|timeout|panic"}[1h])) > 0
+          unless sum by (task) (increase(backendrelay_task_runs_total{outcome="success"}[1h])) > 0
+        for: 15m
+        labels: {severity: warning}
+        annotations: {summary: A scheduled task is failing and has not succeeded in the last hour}
+      - alert: WebhookDeliveryFailing
+        # Retryable failures with no successful delivery in the same window mean
+        # an endpoint is down rather than merely slow.
+        expr: |
+          sum(increase(backendrelay_webhook_deliveries_total{outcome="failed"}[15m])) > 0
+          unless sum(increase(backendrelay_webhook_deliveries_total{outcome="delivered"}[15m])) > 0
+        for: 15m
+        labels: {severity: warning}
+        annotations: {summary: Webhook deliveries are failing with no successful delivery}
+      - alert: EmailFailing
+        # A failed send with no successful send in the same window means the
+        # configured provider is rejecting every attempt.
+        expr: |
+          sum(increase(backendrelay_emails_total{outcome="failed"}[15m])) > 0
+          unless sum(increase(backendrelay_emails_total{outcome="sent"}[15m])) > 0
+        for: 15m
+        labels: {severity: warning}
+        annotations: {summary: Email sends are failing with no successful send}
+      - alert: StorageErrors
+        # Rejections are expected client behaviour and stay out of the ratio;
+        # only object-store and database failures count as errors.
+        expr: sum(increase(backendrelay_storage_ops_total{outcome="error"}[10m])) / clamp_min(sum(increase(backendrelay_storage_ops_total{outcome=~"ok|error"}[10m])), 0.001) > 0.05
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: Storage operation errors exceed five percent}
+      - alert: CanaryFailing
+        # The last-success gauge is zero before the first success, so the
+        # startup gauge supplies the five-minute grace period. A stopped canary
+        # is also covered by ServiceUnavailable through its scrape target.
+        expr: |
+          (time() - backendrelay_canary_last_success_timestamp_seconds > 300
+           and backendrelay_canary_last_success_timestamp_seconds > 0)
+          or
+          (backendrelay_canary_last_success_timestamp_seconds == 0
+           and time() - backendrelay_canary_started_timestamp_seconds > 300)
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: The realtime canary has not completed a write-to-refresh probe in five minutes}
+      - alert: CanaryPropagationSlow
+        expr: histogram_quantile(0.95, sum(rate(backendrelay_canary_propagation_seconds_bucket[10m]))) > 5
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: Realtime canary propagation p95 exceeds five seconds}

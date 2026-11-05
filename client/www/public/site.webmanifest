@@ -1,0 +1,15 @@
+{
+  "name": "BackendRelay",
+  "short_name": "BackendRelay",
+  "icons": [
+    {
+      "src": "/relay.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "theme_color": "#171717",
+  "background_color": "#171717",
+  "display": "standalone"
+}

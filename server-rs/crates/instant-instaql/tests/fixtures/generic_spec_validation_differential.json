@@ -1,0 +1,124 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/core.clj:89-96 and server/src/instant/reactive/session.clj:1245-1248 decode HTTP and WebSocket JSON through ring-json 0.5.0 / Cheshire 6.0.0; Cheshire tag 6.0.0 src/cheshire/parse.clj:17-32 realizes every object from transient {}, hence PersistentHashMap keyword-HAMT iteration for small and large objects. server/src/instant/db/instaql.clj:39-137,544-570; server/src/instant/util/exception.clj:542-576; server/test/instant/db/instaql_test.clj:232-248 pin the resulting spec paths",
+  "cases": [
+    {
+      "name": "legacy-in-requires-vector",
+      "query": {"users": {"$": {"where": {"handle": {"in": {}}}}}},
+      "error": {"expected": "vector?", "path": [0, "option-map", "where-conds", 0, 1, "in"], "message": ""}
+    },
+    {
+      "name": "unknown-where-map-key-uses-qualified-map-predicate",
+      "query": {"users": {"$": {"where": {"handle": {"is": "stopa"}}}}},
+      "error": {"expected": "instant.db.instaql/where-value-valid-keys?", "path": [0, "option-map", "where-conds", 0, 1], "message": ""}
+    },
+    {
+      "name": "is-null-requires-boolean",
+      "query": {"users": {"$": {"where": {"handle": {"$isNull": "a"}}}}},
+      "error": {"expected": "boolean?", "path": [0, "option-map", "where-conds", 0, 1, "$isNull"], "message": ""}
+    },
+    {
+      "name": "in-member-uses-qualified-value-predicate",
+      "query": {"users": {"$": {"where": {"handle": {"$in": ["ok", {"bad": true}]}}}}},
+      "error": {"expected": "instant.db.instaql/in-value-valid?", "path": [0, "option-map", "where-conds", 0, 1, "$in", 1], "message": ""}
+    },
+    {
+      "name": "not-uses-qualified-scalar-predicate",
+      "query": {"users": {"$": {"where": {"handle": {"$not": ["bad"]}}}}},
+      "error": {"expected": "instant.db.instaql/where-value-valid?", "path": [0, "option-map", "where-conds", 0, 1, "$not"], "message": ""}
+    },
+    {
+      "name": "comparator-best-problem-selects-boolean-predicate",
+      "query": {"users": {"$": {"where": {"age": {"$gt": [10]}}}}},
+      "error": {"expected": "boolean?", "path": [0, "option-map", "where-conds", 0, 1, "$gt"], "message": ""}
+    },
+    {
+      "name": "nested-form-path-retains-child-forms-index",
+      "query": {"users": {"bookshelves": {"$": {"where": {"name": {"$isNull": "a"}}}}}},
+      "error": {"expected": "boolean?", "path": [0, "child-forms", 0, "option-map", "where-conds", 0, 1, "$isNull"], "message": ""}
+    },
+    {
+      "name": "best-problem-prefers-deeper-nested-generic-failure",
+      "query": {
+        "users": {
+          "$": {"where": {"handle": {"is": "bad"}}},
+          "bookshelves": {"$": {"where": {"name": {"$isNull": "bad"}}}}
+        }
+      },
+      "error": {"expected": "boolean?", "path": [0, "child-forms", 0, "option-map", "where-conds", 0, 1, "$isNull"], "message": ""}
+    },
+    {
+      "name": "best-problem-tie-selects-the-greater-final-path-segment",
+      "query": {
+        "users": {
+          "$": {
+            "where": {
+              "age": {"$not": [10]},
+              "handle": {"$isNull": "bad"}
+            }
+          }
+        }
+      },
+      "error": {"expected": "instant.db.instaql/where-value-valid?", "path": [0, "option-map", "where-conds", 0, 1, "$not"], "message": ""}
+    },
+    {
+      "name": "known-invalid-operator-beats-shallower-valid-keys-problem",
+      "query": {
+        "users": {
+          "$": {
+            "where": {
+              "handle": {"is": "bad", "$isNull": "bad"}
+            }
+          }
+        }
+      },
+      "error": {"expected": "boolean?", "path": [0, "option-map", "where-conds", 0, 1, "$isNull"], "message": ""}
+    },
+    {
+      "name": "eager-custom-option-error-precedes-deferred-generic-spec-error",
+      "query": {
+        "users": {
+          "$": {
+            "limit": 0,
+            "where": {"handle": {"is": "bad"}}
+          }
+        }
+      },
+      "error": {"expected": "supported-options?", "path": ["users", "$", "limit"], "message": "The limit field must be a positive integer. Got 0."}
+    },
+    {
+      "name": "entity-id-key-is-open-and-unconstrained-by-s-keys",
+      "query": {
+        "users": {
+          "$": {
+            "where": {"handle": {"$entityId": {"any": ["value"]}}}
+          }
+        }
+      },
+      "error": null,
+      "where_value": {"$entityId": {"any": ["value"]}}
+    },
+    {
+      "name": "root-index-follows-cheshire-keyword-hamt-order",
+      "query": {"zeta": {}, "alpha": {"$": {"where": {"field": {"$isNull": "bad"}}}}},
+      "error": {"expected": "boolean?", "path": [1, "option-map", "where-conds", 0, 1, "$isNull"], "message": ""}
+    },
+    {
+      "name": "root-index-is-independent-of-reversed-json-wire-order",
+      "query": {"alpha": {"$": {"where": {"field": {"$isNull": "bad"}}}}, "zeta": {}},
+      "error": {"expected": "boolean?", "path": [1, "option-map", "where-conds", 0, 1, "$isNull"], "message": ""}
+    },
+    {
+      "name": "child-index-follows-cheshire-keyword-hamt-order",
+      "query": {"users": {"alpha": {"$": {"where": {"field": {"$isNull": "bad"}}}}, "bookshelves": {}}},
+      "error": {"expected": "boolean?", "path": [0, "child-forms", 1, "option-map", "where-conds", 0, 1, "$isNull"], "message": ""}
+    },
+    {
+      "name": "greater-than-eight-root-map-keeps-persistent-hash-map-order",
+      "query": {
+        "k0": {}, "k1": {}, "k2": {"$": {"where": {"field": {"$isNull": "bad"}}}},
+        "k3": {}, "k4": {}, "k5": {}, "k6": {}, "k7": {}, "k8": {}, "k9": {}
+      },
+      "error": {"expected": "boolean?", "path": [9, "option-map", "where-conds", 0, 1, "$isNull"], "message": ""}
+    }
+  ]
+}

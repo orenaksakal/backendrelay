@@ -1,0 +1,54 @@
+# Dependency policy for the Rust workspace, enforced by `cargo deny`
+# (see the `audit` target in the repository Makefile).
+#
+# Lint levels: "deny" fails the check, "warn" only reports.
+
+[advisories]
+version = 2
+# Fail on known vulnerabilities and on yanked crates.
+yanked = "deny"
+# Report unmaintained crates only when they are actually reachable from a
+# workspace crate, not for every crate in the registry index.
+unmaintained = "workspace"
+# Every entry must carry the reason it is ignored and the date the exemption
+# has to be revisited; do not extend an expiry without re-checking the
+# advisory.
+ignore = []
+
+[licenses]
+# Only licenses that are actually present in the dependency graph are
+# allowed. Add an entry deliberately, after reviewing the licence text.
+allow = [
+    "0BSD",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+    "bzip2-1.0.6",
+]
+confidence-threshold = 0.8
+
+[bans]
+# Duplicate major versions are reported so they stay visible, but they do not
+# fail the build.
+multiple-versions = "warn"
+# Workspace crates depend on each other by path only (`version` is omitted), so
+# wildcard requirements are expected here.
+wildcards = "allow"
+
+[sources]
+# crates.io only. First-party code is a path patch (`vendor/cel`), which is not
+# a registry or git source.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

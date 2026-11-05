@@ -1,0 +1,40 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/db/instaql.clj:583-704 ->where-cond-attr-pats resolves relationship segments before treating terminal $entityIdStartsWith as the current entity type's id attribute",
+  "cases": [
+    {
+      "name": "root-entity-prefix",
+      "query": {"users": {"$": {"where": {"$entityIdStartsWith": "abc"}}}},
+      "expected_attrs": ["11111111-1111-1111-1111-111111111111"]
+    },
+    {
+      "name": "forward-relationship-entity-prefix",
+      "query": {"users": {"$": {"where": {"bookshelves.$entityIdStartsWith": "abc"}}}},
+      "expected_attrs": [
+        "44444444-4444-4444-4444-444444444444",
+        "55555555-5555-5555-5555-555555555555"
+      ]
+    },
+    {
+      "name": "reverse-relationship-entity-prefix",
+      "query": {"bookshelves": {"$": {"where": {"owner.$entityIdStartsWith": "abc"}}}},
+      "expected_attrs": [
+        "11111111-1111-1111-1111-111111111111",
+        "44444444-4444-4444-4444-444444444444"
+      ]
+    },
+    {
+      "name": "multi-hop-reverse-relationship-entity-prefix",
+      "query": {"books": {"$": {"where": {"shelf.owner.$entityIdStartsWith": "abc"}}}},
+      "expected_attrs": [
+        "11111111-1111-1111-1111-111111111111",
+        "44444444-4444-4444-4444-444444444444",
+        "66666666-6666-6666-6666-666666666666"
+      ]
+    },
+    {
+      "name": "nested-entity-prefix-still-requires-a-string",
+      "query": {"users": {"$": {"where": {"bookshelves.$entityIdStartsWith": 42}}}},
+      "expected_error": "string?"
+    }
+  ]
+}

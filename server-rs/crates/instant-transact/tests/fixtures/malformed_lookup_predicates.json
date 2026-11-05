@@ -1,0 +1,45 @@
+{
+  "source": "instantdb/instant@4e0a1bd8 server/src/instant/db/transaction.clj:126-184 check-for-invalid-entity-ids! and server/src/instant/db/model/triple.clj:29-35; predicates captured after coerce! with Clojure 1.12.0 and spec.alpha 0.3.218",
+  "cases": [
+    {
+      "name": "malformed-sequential-lookups-retain-nested-paths-and-step-order",
+      "input": [
+        ["add-triple", [], "22222222-2222-2222-2222-222222222222", "value"],
+        ["deep-merge-triple", ["22222222-2222-2222-2222-222222222222"], "99999999-9999-9999-9999-999999999999", {}],
+        ["retract-triple", ["22222222-2222-2222-2222-222222222222", "alex", "extra"], "22222222-2222-2222-2222-222222222222", "old"],
+        ["delete-entity", ["not-a-uuid", "alex"]],
+        ["rule-params", {"attribute": "22222222-2222-2222-2222-222222222222"}, {}],
+        ["rule-params", ["22222222-2222-2222-2222-222222222222"], {}]
+      ],
+      "errors": [
+        {"path": [0, 1], "message": "(= (count %) 2)"},
+        {"path": [1, 1], "message": "(= (count %) 2)"},
+        {"path": [2, 1], "message": "(= (count %) 2)"},
+        {"path": [3, 1, 0], "message": "uuid?"},
+        {"path": [4, 1], "message": "vector?"},
+        {"path": [5, 1], "message": "(= (count %) 2)"}
+      ]
+    },
+    {
+      "name": "id-lookup-guard-precedes-shape-spec-for-write-entities",
+      "input": [
+        ["add-triple", ["11111111-1111-1111-1111-111111111111"], "22222222-2222-2222-2222-222222222222", "value"],
+        ["delete-entity", ["11111111-1111-1111-1111-111111111111", "not-a-uuid", "extra"]]
+      ],
+      "errors": [
+        {
+          "path": [0, 1],
+          "message": "Invalid lookup '[#uuid \"11111111-1111-1111-1111-111111111111\"]'. The lookup attribute is 'users.id', but the lookup value is not a valid UUID."
+        },
+        {
+          "path": [1, 1],
+          "message": "Invalid lookup '[#uuid \"11111111-1111-1111-1111-111111111111\" \"not-a-uuid\" \"extra\"]'. The lookup attribute is 'users.id', but the lookup value is not a valid UUID."
+        }
+      ]
+    }
+  ],
+  "accepted": [
+    ["rule-params", ["11111111-1111-1111-1111-111111111111", "not-a-uuid"], {}],
+    ["rule-params", ["22222222-2222-2222-2222-222222222222", "alex"], "users", {"localId": "one"}]
+  ]
+}

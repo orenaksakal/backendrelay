@@ -1,0 +1,208 @@
+/* Original Instant dashboard surfaces. Do not import the console redesign:
+   its global overrides change the upstream layouts and shared controls. */
+html[data-dashboard] {
+  --dash-canvas: #f9fafb;
+  --dash-surface: #ffffff;
+  --dash-subtle: #f3f4f6;
+  --dash-hover: #e5e7eb;
+  --dash-ink: #111827;
+  --dash-muted: #6b7280;
+  --dash-line: #e5e7eb;
+  --dash-line-strong: #d1d5db;
+  --dash-accent: #606af4;
+  --dash-accent-hover: #4543e9;
+  --dash-on-accent: #ffffff;
+  --dash-accent-soft: #eef2ff;
+  --dash-danger: #b91c1c;
+  --dash-warning: #92400e;
+  --dash-success: #15803d;
+  --dash-code-surface: #f9fafb;
+  --dash-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  --ui-canvas: var(--dash-canvas);
+  --ui-surface: var(--dash-surface);
+  --ui-subtle: var(--dash-subtle);
+  --ui-ink: var(--dash-ink);
+  --ui-muted: var(--dash-muted);
+  --ui-line: var(--dash-line);
+  --ui-line-strong: var(--dash-line-strong);
+  --ui-accent: var(--dash-accent);
+  --ui-accent-soft: var(--dash-accent-soft);
+  --ui-on-accent: var(--dash-on-accent);
+  --ui-danger: var(--dash-danger);
+  --ui-warning: var(--dash-warning);
+  --ui-success: var(--dash-success);
+  --ui-code-surface: var(--dash-code-surface);
+  color-scheme: light;
+}
+
+html[data-dashboard].dark {
+  --dash-canvas: #262626;
+  --dash-surface: #262626;
+  --dash-subtle: #333333;
+  --dash-hover: #404040;
+  --dash-ink: #ffffff;
+  --dash-muted: #a3a3a3;
+  --dash-line: #404040;
+  --dash-line-strong: #525252;
+  --dash-accent: #606af4;
+  --dash-accent-hover: #4543e9;
+  --dash-on-accent: #ffffff;
+  --dash-accent-soft: #312e81;
+  --dash-danger: #fca5a5;
+  --dash-warning: #fcd34d;
+  --dash-success: #86efac;
+  --dash-code-surface: #252525;
+  color-scheme: dark;
+}
+
+.dashboard-shell {
+  font-family: 'Switzer', sans-serif;
+}
+.dashboard-content > * {
+  min-width: 0;
+}
+.dashboard-view {
+  outline: none;
+}
+.dashboard-nav-item svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.dashboard-skip-link {
+  position: fixed;
+  top: 0;
+  left: 8px;
+  z-index: 100;
+  transform: translateY(-110%);
+  padding: 8px 12px;
+  background: var(--dash-surface);
+  color: var(--dash-ink);
+}
+.dashboard-skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Shared primitives used by the login screen and backup controls. */
+.dash-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.dash-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dash-button-default-size {
+  min-height: 36px;
+  padding: 0 14px;
+}
+.dash-button-sm {
+  min-height: 32px;
+  padding: 0 10px;
+}
+.dash-button-icon-sm {
+  width: 28px;
+  height: 28px;
+}
+.dash-button-default {
+  background: var(--dash-accent);
+  color: var(--dash-on-accent);
+}
+.dash-button-outline {
+  border-color: var(--dash-line);
+  background: var(--dash-surface);
+}
+.dash-button-secondary,
+.dash-button-ghost:hover {
+  background: var(--dash-subtle);
+}
+.dash-input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--dash-line);
+  border-radius: 4px;
+  padding: 8px 11px;
+  background: var(--dash-surface);
+  color: var(--dash-ink);
+}
+.dashboard-auth-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.dashboard-auth-copy {
+  color: var(--dash-muted);
+  font-size: 0.875rem;
+}
+.dashboard-auth-field-label {
+  font-size: 0.875rem;
+}
+.dashboard-auth-error {
+  color: var(--dash-danger);
+  font-size: 0.875rem;
+}
+.dashboard-auth-divider {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+}
+.dashboard-auth-google {
+  width: 100%;
+}
+.dashboard-resource-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  padding: 24px;
+}
+.dashboard-resource-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.dashboard-resource-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.dashboard-resource-header p {
+  color: var(--dash-muted);
+}
+.dashboard-resource-eyebrow {
+  font-size: 12px;
+  color: var(--dash-muted);
+}
+.dashboard-panel {
+  border: 1px solid var(--dash-line);
+  background: var(--dash-surface);
+  border-radius: 4px;
+}
+.shell-load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 32px;
+}
+.shell-load-error h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.shell-load-error button,
+.shell-load-error a {
+  text-decoration: underline;
+}
+
+@media (max-width: 767px) {
+  .dashboard-resource-page {
+    padding: 16px;
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "source": "server/src/instant/db/transaction.clj:126-211 (coerce!/validate! explain-data)",
+  "cases": [
+    {
+      "name": "independent-tuple-schema-map-and-shape-errors",
+      "input": [
+        ["add-triple", "not-a-uuid", "22222222-2222-2222-2222-222222222222", "value"],
+        ["update-attr", {"id": "22222222-2222-2222-2222-222222222222", "cardinality": null}],
+        {"id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "etype": "users", "missing": true},
+        7
+      ],
+      "errors": [
+        {
+          "path": [0, 1],
+          "message": "Invalid entity ID 'not-a-uuid'. Entity IDs must be UUIDs. Use id() or lookup() to generate a valid UUID."
+        },
+        {
+          "path": [1, 1, "cardinality"],
+          "message": "#{:one :many}"
+        },
+        {
+          "path": [2, "missing"],
+          "message": "unknown attribute `users.missing`"
+        },
+        {
+          "path": [3],
+          "message": "coll?"
+        }
+      ]
+    },
+    {
+      "name": "independent-attribute-composite-errors-retain-input-order",
+      "input": [
+        ["add-attr", {
+          "id": "aaaaaaaa-1111-1111-1111-111111111111",
+          "forward-identity": ["aaaaaaaa-2222-2222-2222-222222222222", "users", "  "],
+          "value-type": "blob",
+          "cardinality": "one",
+          "unique?": false,
+          "index?": false
+        }],
+        ["add-attr", {
+          "id": "aaaaaaaa-3333-3333-3333-333333333333",
+          "forward-identity": ["aaaaaaaa-4444-4444-4444-444444444444", "posts", "title"],
+          "value-type": null,
+          "cardinality": "one",
+          "unique?": false,
+          "index?": false
+        }],
+        ["restore-attr", "compactcompactcompactcompactcompac"]
+      ],
+      "errors": [
+        {
+          "path": [0, 1, "forward-identity", 2],
+          "message": "(complement clojure.string/blank?)"
+        },
+        {
+          "path": [1, 1],
+          "message": "instant.db.model.attr/value-type"
+        },
+        {
+          "path": [2, 1],
+          "message": "uuid?"
+        }
+      ]
+    },
+    {
+      "name": "multiple-predicates-in-one-triple-retain-tuple-position-order",
+      "input": [
+        [
+          "add-triple",
+          "not-an-entity-uuid",
+          "not-an-attribute-uuid",
+          ["11111111-1111-1111-1111-111111111111", "not-an-id-uuid"],
+          {"mode": "replace"}
+        ]
+      ],
+      "errors": [
+        {
+          "path": [0, 1],
+          "message": "Invalid entity ID 'not-an-entity-uuid'. Entity IDs must be UUIDs. Use id() or lookup() to generate a valid UUID."
+        },
+        {
+          "path": [0, 2],
+          "message": "uuid?"
+        },
+        {
+          "path": [0, 3],
+          "message": "Invalid lookup '[#uuid \"11111111-1111-1111-1111-111111111111\" \"not-an-id-uuid\"]'. The lookup attribute is 'users.id', but the lookup value is not a valid UUID."
+        },
+        {
+          "path": [0, 4, "mode"],
+          "message": "#{:create :update :upsert}"
+        }
+      ]
+    },
+    {
+      "name": "multiple-predicates-in-one-attribute-map-retain-schema-order",
+      "input": [
+        ["add-attr", {
+          "id": "not-an-attribute-uuid",
+          "forward-identity": ["not-an-identity-uuid", " ", "\t"],
+          "value-type": null,
+          "cardinality": "several",
+          "unique?": "yes",
+          "index?": 1,
+          "reverse-identity": ["too", "short"],
+          "checked-data-type": null,
+          "required?": "yes",
+          "on-delete": "archive",
+          "on-delete-reverse": 7,
+          "setting-unique?": "pending",
+          "indexing?": [],
+          "checking-data-type?": {}
+        }]
+      ],
+      "errors": [
+        {
+          "path": [0, 1, "id"],
+          "message": "uuid?"
+        },
+        {
+          "path": [0, 1, "forward-identity", 0],
+          "message": "uuid?"
+        },
+        {
+          "path": [0, 1, "forward-identity", 1],
+          "message": "(complement clojure.string/blank?)"
+        },
+        {
+          "path": [0, 1, "forward-identity", 2],
+          "message": "(complement clojure.string/blank?)"
+        },
+        {
+          "path": [0, 1],
+          "message": "instant.db.model.attr/value-type"
+        },
+        {
+          "path": [0, 1, "cardinality"],
+          "message": "#{:one :many}"
+        },
+        {
+          "path": [0, 1, "unique?"],
+          "message": "boolean?"
+        },
+        {
+          "path": [0, 1, "index?"],
+          "message": "boolean?"
+        },
+        {
+          "path": [0, 1, "checked-data-type"],
+          "message": "instant.db.model.attr/checked-data-types"
+        },
+        {
+          "path": [0, 1, "required?"],
+          "message": "boolean?"
+        },
+        {
+          "path": [0, 1, "on-delete"],
+          "message": "invalid `on-delete`"
+        },
+        {
+          "path": [0, 1, "on-delete-reverse"],
+          "message": "invalid `on-delete-reverse`"
+        },
+        {
+          "path": [0, 1, "setting-unique?"],
+          "message": "boolean?"
+        },
+        {
+          "path": [0, 1, "indexing?"],
+          "message": "boolean?"
+        },
+        {
+          "path": [0, 1, "checking-data-type?"],
+          "message": "boolean?"
+        }
+      ]
+    }
+  ]
+}

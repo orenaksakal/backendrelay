@@ -1,0 +1,6 @@
+---
+// The upstream marketing site has been removed. Everything the Astro server
+// still serves is the dashboard entry point: middleware proxies Start-owned
+// routes and sends every other page here.
+return Astro.redirect('/dash');
+---

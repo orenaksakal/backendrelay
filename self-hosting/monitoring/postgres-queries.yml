@@ -1,0 +1,143 @@
+backendrelay_slot_expected:
+  query: "SELECT 1::float8 AS replicas"
+  metrics:
+    - replicas: {usage: GAUGE, description: Invalidator replicas expected to hold an active slot}
+backendrelay_invalidator_slots:
+  query: |
+    SELECT count(*)::float8 AS present,
+           count(*) FILTER (WHERE active)::float8 AS active
+      FROM pg_replication_slots
+     WHERE slot_name LIKE 'invalidator\_%' ESCAPE '\'
+  metrics:
+    - present: {usage: GAUGE, description: Per-process invalidator slots in the catalog}
+    - active: {usage: GAUGE, description: Invalidator slots with a connected consumer}
+backendrelay_aggregator_slot:
+  query: |
+    SELECT count(*)::float8 AS present,
+           count(*) FILTER (WHERE active)::float8 AS active
+      FROM pg_replication_slots
+     WHERE slot_name = 'aggregator'
+  metrics:
+    - present: {usage: GAUGE, description: Shared aggregator slot exists}
+    - active: {usage: GAUGE, description: Shared aggregator slot has a connected consumer}
+backendrelay_slot:
+  query: |
+    SELECT slot_name::text AS slot,
+           CASE WHEN slot_name = 'aggregator' THEN 'aggregator' ELSE 'invalidator' END AS role,
+           active::int::float8 AS active,
+           (invalidation_reason IS NOT NULL OR coalesce(wal_status = 'lost', false))::int::float8 AS invalid,
+           (slot_type <> 'logical' OR database IS DISTINCT FROM current_database())::int::float8 AS wrong_database_or_type,
+           (confirmed_flush_lsn IS NULL)::int::float8 AS uninitialized,
+           coalesce(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn), 0)::float8 AS retained_bytes,
+           coalesce(pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn), 0)::float8 AS pending_bytes,
+           coalesce(pg_wal_lsn_diff(confirmed_flush_lsn, '0/0'::pg_lsn), 0)::float8 AS confirmed_bytes,
+           coalesce(wal_status = 'reserved', false)::int::float8 AS wal_status_reserved,
+           coalesce(wal_status = 'extended', false)::int::float8 AS wal_status_extended,
+           coalesce(wal_status = 'unreserved', false)::int::float8 AS wal_status_unreserved,
+           coalesce(wal_status = 'lost', false)::int::float8 AS wal_status_lost
+      FROM pg_replication_slots
+     WHERE slot_name LIKE 'invalidator\_%' ESCAPE '\' OR slot_name = 'aggregator'
+  metrics:
+    - slot: {usage: LABEL, description: Replication slot name}
+    - role: {usage: LABEL, description: Consumer role derived from the slot name}
+    - active: {usage: GAUGE, description: Slot has a connected consumer}
+    - invalid: {usage: GAUGE, description: Slot lost required WAL or was invalidated}
+    - wrong_database_or_type: {usage: GAUGE, description: Slot is not a logical slot in this database}
+    - uninitialized: {usage: GAUGE, description: Slot has no confirmed position}
+    - retained_bytes: {usage: GAUGE, description: WAL bytes the slot still requires}
+    - pending_bytes: {usage: GAUGE, description: WAL bytes since consumer acknowledgement}
+    - confirmed_bytes: {usage: GAUGE, description: Consumer acknowledgement position in bytes}
+    - wal_status_reserved: {usage: GAUGE, description: Slot retains WAL within max_wal_size}
+    - wal_status_extended: {usage: GAUGE, description: Slot retains WAL beyond max_wal_size}
+    - wal_status_unreserved: {usage: GAUGE, description: Slot no longer guarantees retained WAL}
+    - wal_status_lost: {usage: GAUGE, description: Slot lost required WAL}
+backendrelay_wal:
+  query: "SELECT coalesce(max(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)), 0)::float8 AS retained_bytes FROM pg_replication_slots"
+  metrics:
+    - retained_bytes: {usage: GAUGE, description: Maximum retained WAL across replication slots}
+backendrelay_app_writes:
+  cache_seconds: 60
+  query: |
+    SELECT app_id::text AS app,
+           count(*)::float8 AS per_minute
+      FROM transactions
+     WHERE created_at > now() - interval '1 minute'
+     GROUP BY app_id
+  metrics:
+    - app: {usage: LABEL, description: Application identifier}
+    - per_minute: {usage: GAUGE, description: Transactions committed for this app in the last minute}
+backendrelay_app_triples:
+  cache_seconds: 60
+  query: |
+    SELECT app_id::text AS app,
+           sum(coalesce(pg_size, 0) + coalesce(files_size, 0))::float8 AS bytes
+      FROM triples_size_aggregate
+     GROUP BY app_id
+  metrics:
+    - app: {usage: LABEL, description: Application identifier}
+    - bytes: {usage: GAUGE, description: Approximate table and file bytes this app's triples occupy}
+backendrelay_app_webhook_events:
+  cache_seconds: 60
+  query: |
+    SELECT app_id::text AS app,
+           count(*) FILTER (WHERE status = 'pending')::float8 AS pending,
+           count(*) FILTER (WHERE status IN ('error', 'failed'))::float8 AS failed
+      FROM webhook_events
+     WHERE partition_bucket IN (
+             (extract(epoch from now())::bigint / 86400 / 30 % 13)::int,
+             (extract(epoch from now())::bigint / 86400 / 30 % 13 - 1)::int
+           )
+       AND created_at > now() - interval '1 day'
+       AND status IN ('pending', 'error', 'failed')
+     GROUP BY app_id
+  metrics:
+    - app: {usage: LABEL, description: Application identifier}
+    - pending: {usage: GAUGE, description: Webhook deliveries queued for this app in the last day}
+    - failed: {usage: GAUGE, description: Webhook deliveries that failed for this app in the last day}
+backendrelay_postgres_connections:
+  query: |
+    SELECT count(*)::float8 AS used,
+           current_setting('max_connections')::float8 AS max
+      FROM pg_stat_activity
+  metrics:
+    - used: {usage: GAUGE, description: Backends currently connected to this database}
+    - max: {usage: GAUGE, description: Server max_connections setting}
+backendrelay_postgres_longest_transaction:
+  query: |
+    SELECT coalesce(max(extract(epoch from now() - xact_start)), 0)::float8 AS seconds
+      FROM pg_stat_activity
+     WHERE xact_start IS NOT NULL
+       AND backend_type = 'client backend'
+  metrics:
+    - seconds: {usage: GAUGE, description: Age of the oldest client transaction}
+backendrelay_postgres_idle_in_transaction:
+  query: |
+    SELECT coalesce(max(extract(epoch from now() - state_change)), 0)::float8 AS seconds
+      FROM pg_stat_activity
+     WHERE state = 'idle in transaction'
+  metrics:
+    - seconds: {usage: GAUGE, description: Longest idle-in-transaction session}
+backendrelay_pg_statements:
+  cache_seconds: 60
+  query: |
+    SELECT coalesce(sum(calls), 0)::float8 AS calls,
+           coalesce(sum(total_exec_time), 0)::float8 AS exec_ms,
+           coalesce(sum(rows), 0)::float8 AS rows
+      FROM pg_stat_statements
+  metrics:
+    - calls: {usage: GAUGE, description: Statements executed since the last statistics reset}
+    - exec_ms: {usage: GAUGE, description: Total statement execution time in milliseconds}
+    - rows: {usage: GAUGE, description: Rows returned or affected by tracked statements}
+backendrelay_pg_statements_top:
+  cache_seconds: 60
+  query: |
+    SELECT queryid::text AS query_id,
+           round(total_exec_time::numeric, 3)::float8 AS exec_ms,
+           calls::float8 AS calls
+      FROM pg_stat_statements
+     ORDER BY total_exec_time DESC
+     LIMIT 10
+  metrics:
+    - query_id: {usage: LABEL, description: Statement identity; read the text in psql}
+    - exec_ms: {usage: GAUGE, description: Total execution time of this statement}
+    - calls: {usage: GAUGE, description: Executions of this statement}

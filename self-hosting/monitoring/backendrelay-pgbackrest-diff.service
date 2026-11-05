@@ -1,0 +1,17 @@
+[Unit]
+Description=BackendRelay daily pgBackRest differential backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+WorkingDirectory=/opt/backendrelay/self-hosting
+# Sets PGBACKREST_HEALTHCHECK_URL and, when the deployment uses a different
+# compose file, COMPOSE_FILE. The file is optional.
+EnvironmentFile=-/etc/backendrelay/pgbackrest.env
+ExecStart=/usr/bin/docker compose --project-name backendrelay exec -T -u postgres postgres pgbackrest --stanza=backendrelay --type=diff backup
+ExecStartPost=-/bin/sh -c 'test -z "$${PGBACKREST_HEALTHCHECK_URL:-}" || /usr/bin/curl -fsS -m 10 "$$PGBACKREST_HEALTHCHECK_URL" >/dev/null'
+TimeoutStartSec=4h
+TimeoutStopSec=5min
+KillMode=control-group

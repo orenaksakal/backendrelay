@@ -1,0 +1,16 @@
+{
+  "backupRoot": "/var/lib/backendrelay/backups",
+  "minimumFreeBytes": 32212254720,
+  "keepLocal": 7,
+  "ageRecipients": ["REPLACE_WITH_OPERATOR_AGE_PUBLIC_RECIPIENT"],
+  "services": {"server": "REPLACE_SERVER_CONTAINER", "dashboard": "REPLACE_DASHBOARD_CONTAINER"},
+  "databases": {"primary": "REPLACE_PRIMARY_CONTAINER"},
+  "configurationDirectory": "/etc/backendrelay/deployment",
+  "rollbackImages": ["REPLACE_WITH_VERIFIED_ROLLBACK_IMAGE_DIGEST"],
+  "source": {"revision": "REPLACE_WITH_DEPLOYED_REVISION", "sourceSha256": "REPLACE_WITH_DEPLOYED_SOURCE_FINGERPRINT", "dirty": false},
+  "candidateImages": {"server": "REPLACE_WITH_SERVER_DIGEST", "dashboard": "REPLACE_WITH_DASHBOARD_DIGEST"},
+  "uploadCommand": ["scp", "-B", "--", "{bundle}", "backup-offhost:/srv/backendrelay-backups/"],
+  "verifyOffhostCommand": ["ssh", "-o", "BatchMode=yes", "backup-offhost", "/usr/local/bin/backendrelay-backup-sha256", "{name}"],
+  "metricsFile": "/var/lib/node-exporter/textfile/backup.prom",
+  "healthcheckUrl": "https://hc-ping.com/REPLACE_WITH_HEALTHCHECK_UUID"
+}

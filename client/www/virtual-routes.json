@@ -1,0 +1,60 @@
+{
+  "type": "root",
+  "file": "__root.tsx",
+  "children": [
+    {
+      "type": "index",
+      "file": "indexRoute.tsx"
+    },
+    {
+      "type": "route",
+      "path": "/dash",
+      "file": "dashRoute.tsx"
+    },
+    {
+      "type": "route",
+      "path": "/dash/new",
+      "file": "dashNewRoute.tsx"
+    },
+    {
+      "type": "route",
+      "path": "/dash/onboarding",
+      "file": "dashOnboardingRoute.tsx"
+    },
+    {
+      "type": "route",
+      "path": "/dash/org",
+      "file": "dashOrgRoute.tsx"
+    },
+    {
+      "type": "route",
+      "path": "/dash/user-settings",
+      "file": "dashUserSettingsRoute.tsx"
+    },
+    {
+      "type": "route",
+      "path": "/dash/oauth/callback",
+      "file": "oauthCallbackRoute.tsx"
+    },
+    {
+      "type": "route",
+      "path": "/_devtool",
+      "file": "devtoolRoute.tsx"
+    },
+    {
+      "type": "route",
+      "path": "/platform/oauth/start",
+      "file": "platformOAuthStartRoute.tsx"
+    },
+    {
+      "type": "route",
+      "path": "/intern/deployment-settings",
+      "file": "deploymentSettingsRoute.tsx"
+    },
+    {
+      "type": "route",
+      "path": "/$",
+      "file": "notFoundRoute.tsx"
+    }
+  ]
+}

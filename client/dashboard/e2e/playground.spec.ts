@@ -1,0 +1,49 @@
+import type { Page } from '@playwright/test';
+import { expect, test } from './fixtures';
+
+const SESSION = JSON.stringify({
+  token: 'e2e-session-token',
+  user: { id: 'user-1', email: 'owner@example.com' },
+});
+
+async function signIn(page: Page): Promise<void> {
+  await page.addInitScript((session) => {
+    window.localStorage.setItem('br.session', session);
+  }, SESSION);
+}
+
+/**
+ * The Playground needs a real Instant connection for its editors and results,
+ * so the mock-mode browser suite covers the role gate and accessibility; the
+ * query and transaction round trips run against the Docker stack (D9.2).
+ */
+test.describe('playground', () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page);
+  });
+
+  test('stops below admin access and explains the role @smoke', async ({
+    page,
+    checkA11y,
+  }) => {
+    await page.goto('/apps/app-2/playground');
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Playground' }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("You don't have access to playground"),
+    ).toBeVisible();
+    await expect(
+      page.getByText('The playground needs admin access to this app.'),
+    ).toBeVisible();
+    await expect(page.getByText('This needs the admin role.')).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Query' })).toHaveCount(0);
+    await checkA11y();
+
+    await page.keyboard.press('Tab');
+    await expect(
+      page.getByRole('link', { name: 'Skip to content' }),
+    ).toBeFocused();
+  });
+});

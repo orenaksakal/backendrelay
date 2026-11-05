@@ -1,0 +1,14 @@
+drop trigger if exists execution_audit_app_limits on execution_app_limits;
+drop trigger if exists execution_audit_runs on execution_runs;
+drop trigger if exists execution_audit_cron_manual_runs on execution_cron_manual_runs;
+drop trigger if exists execution_audit_task_deployments on execution_task_deployments;
+drop trigger if exists execution_audit_route_apps on execution_route_apps;
+drop trigger if exists execution_audit_deployments on execution_deployments;
+drop trigger if exists execution_audit_secrets on execution_secrets;
+drop trigger if exists execution_audit_crons on execution_crons;
+drop trigger if exists execution_audit_workflow_definitions on execution_workflow_definitions;
+drop trigger if exists execution_audit_task_definitions on execution_task_definitions;
+drop trigger if exists apps_mark_execution_audit_deleting on apps;
+drop function if exists execution_audit_management_change();
+drop function if exists execution_audit_mark_app_deleting();
+drop table if exists execution_audit_events;

@@ -1,0 +1,76 @@
+# Fly.io Frankfurt lifeboat for P7.8(b).
+#
+# Copy this file to fly.toml, replace every REPLACE_WITH_* value, and deploy the
+# same signed server digest as production. The template deliberately keeps
+# secrets out of the file: import DATABASE_URL, the S3 keys, the email token,
+# the OAuth client secret and the three server keysets with `fly secrets import`
+# or a volume, as described in README.md.
+#
+# Validate the result with `fly config validate` before `fly deploy`.
+
+app = "REPLACE_WITH_LIFEBOAT_FLY_APP"
+primary_region = "fra"
+
+[build]
+  image = "REPLACE_WITH_SIGNED_SERVER_IMAGE_DIGEST"
+
+[env]
+  PORT = "8888"
+  # The public origin of this deployment. A mismatch breaks OAuth callbacks,
+  # storage URLs and webhook signatures.
+  INSTANT_BACKEND_URL = "https://REPLACE_WITH_LIFEBOAT_API_HOSTNAME"
+  # The dashboard is not deployed for the drill, but links and redirects still
+  # need a valid absolute URL.
+  INSTANT_DASHBOARD_URL = "https://REPLACE_WITH_LIFEBOAT_DASHBOARD_HOSTNAME"
+  INSTANT_SECURE_COOKIES = "true"
+  # Fly terminates TLS in front of the app. Leave this blank for the drill; with
+  # no trusted proxy every client shares the proxy address for per-IP limits.
+  INSTANT_TRUSTED_PROXY_CIDRS = ""
+  CONNECTION_POOL_SIZE = "10"
+  WAL_HISTORY_STORAGE = "pg"
+
+  # Object storage. Restored $files rows point at the production keys, so these
+  # must address the same buckets (or a copy) for file downloads to work.
+  INSTANT_S3_REGION = "auto"
+  S3_ENDPOINT = "https://REPLACE_WITH_R2_ACCOUNT.r2.cloudflarestorage.com"
+  # A public bucket hostname, or the same value as S3_ENDPOINT when downloads
+  # are presigned from a private bucket.
+  S3_PUBLIC_ENDPOINT = "https://REPLACE_WITH_R2_PUBLIC_FILES_HOSTNAME"
+  S3_VIRTUAL_HOST_STYLE = "false"
+  S3_BUCKET = "REPLACE_WITH_PRODUCTION_FILES_BUCKET"
+  S3_APP_BACKUPS_BUCKET = "REPLACE_WITH_PRODUCTION_BACKUPS_BUCKET"
+
+  # Email is needed for the magic-code sign-in check.
+  INSTANT_EMAIL_PROVIDER = "cloudflare"
+  CLOUDFLARE_ACCOUNT_ID = "REPLACE_WITH_CLOUDFLARE_ACCOUNT_ID"
+  INSTANT_TRANSACTIONAL_EMAIL_SENDER_EMAIL = "REPLACE_WITH_SENDER_ADDRESS"
+
+  # Keep the lifeboat closed to new accounts while it holds production data.
+  INSTANT_DASHBOARD_SIGNUP = "closed"
+  INSTANT_EPHEMERAL_APPS = "false"
+  INSTANT_SUPERUSER_EMAIL = "REPLACE_WITH_OWNER_EMAIL"
+
+[http_service]
+  internal_port = 8888
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health/system"
+
+# Uncomment when restoring server_secrets into a Fly volume instead of
+# importing the three keysets as platform secrets.
+# [[mounts]]
+#   source = "lifeboat_secrets"
+#   destination = "/home/instant/config"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"

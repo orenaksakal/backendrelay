@@ -1,0 +1,61 @@
+{
+  "source": "Rust planner regressions adapted from the public query shapes at instantdb/instant@45d3ffbb (parent 4e0a1bd8), server/test/instant/db/instaql_test.clj:2942-2995,3426-3490,4231-4254. Upstream does not expose these internal CTE names as an oracle.",
+  "app_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "cases": [
+    {
+      "name": "nested OR stress selector retains its gather before fetch",
+      "query": {
+        "users": {
+          "$": {
+            "fields": ["handle"],
+            "where": {
+              "and": [
+                {
+                  "or": [
+                    {"or": [{"handle": "stopa"}, {"or": [{"handle": "stopa"}, {"handle": "stopa"}]}]},
+                    {"handle": "stopa"}
+                  ]
+                },
+                {
+                  "or": [
+                    {"or": [{"handle": "stopa"}, {"or": [{"handle": "stopa"}, {"handle": "stopa"}]}]},
+                    {"handle": "stopa"}
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "expected_cte_names": ["m-0", "m-1", "m-2", "m-3"],
+      "expected_cte_kinds": ["match", "gather", "select", "match"],
+      "expected_result_kinds": ["rows", "rows"]
+    },
+    {
+      "name": "relationship order after boolean root selection has independent child graphs",
+      "query": {
+        "users": {
+          "$": {
+            "fields": ["handle", "age"],
+            "where": {"and": [{"handle": "stopa"}, {"bookshelves.order": 0}, {"age": 42}]}
+          },
+          "bookshelves": {"$": {"fields": ["name", "order"], "order": {"order": "desc"}}}
+        }
+      },
+      "expected_cte_names": ["m-0", "m-1", "m-2", "m-3", "m-4", "m-5", "m-6", "m-7", "m-8", "m-9"],
+      "expected_cte_kinds": ["match", "match", "match", "match", "select", "match", "select", "match", "select", "match"],
+      "expected_result_kinds": ["rows", "rows", "rows", "rows"]
+    },
+    {
+      "name": "multiple aggregate roots retain independent scalar result tables",
+      "query": {
+        "users": {"$": {"aggregate": "count"}},
+        "books": {"$": {"aggregate": "count"}}
+      },
+      "admin": true,
+      "expected_cte_names": ["m-0", "m-1"],
+      "expected_cte_kinds": ["match", "match"],
+      "expected_result_kinds": ["count", "count"]
+    }
+  ]
+}

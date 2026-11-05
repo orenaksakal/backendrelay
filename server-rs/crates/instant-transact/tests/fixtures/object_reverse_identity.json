@@ -1,0 +1,64 @@
+{
+  "source": "instantdb/instant@4e0a1bd8 server/src/instant/db/transaction.clj:71-90,641-708 expand-maps and server/src/instant/db/model/attr.clj:1093-1101 resolve-attr-id; forward lookup precedes reverse lookup",
+  "cases": [
+    {
+      "name": "existing-reverse-identity-resolves-in-object-form",
+      "input": [{
+        "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "etype": "bookshelves",
+        "owner": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }],
+      "expected_attr_id": "44444444-4444-4444-4444-444444444444",
+      "expected_etype": "users",
+      "expected_reverse_etype": "bookshelves",
+      "expected_value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    },
+    {
+      "name": "request-wide-optimistic-reverse-rename-is-visible-before-update-step",
+      "input": [
+        {
+          "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+          "etype": "bookshelves",
+          "member": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        },
+        ["update-attr", {
+          "id": "44444444-4444-4444-4444-444444444444",
+          "forward-identity": ["cccccccc-cccc-cccc-cccc-cccccccccccc", "users", "shelves"],
+          "reverse-identity": ["dddddddd-dddd-dddd-dddd-dddddddddddd", "bookshelves", "member"],
+          "cardinality": "many"
+        }]
+      ],
+      "expected_attr_id": "44444444-4444-4444-4444-444444444444",
+      "expected_etype": "users",
+      "expected_reverse_etype": "bookshelves",
+      "expected_value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    },
+    {
+      "name": "forward-identity-wins-over-an-existing-reverse-identity-collision",
+      "catalog_append": [{
+        "id": "abababab-abab-abab-abab-abababababab",
+        "etype": "bookshelves",
+        "label": "owner",
+        "value_type": "blob",
+        "cardinality": "one",
+        "unique": false,
+        "indexed": false,
+        "required": false,
+        "checked_data_type": null,
+        "indexing": false,
+        "checking_data_type": false,
+        "reverse_etype": null,
+        "reverse_label": null
+      }],
+      "input": [{
+        "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "etype": "bookshelves",
+        "owner": "forward-wins"
+      }],
+      "expected_attr_id": "abababab-abab-abab-abab-abababababab",
+      "expected_etype": "bookshelves",
+      "expected_reverse_etype": null,
+      "expected_value": "forward-wins"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "catalog": {
+    "attributes": [
+      {"id":"11111111-1111-1111-1111-111111111111","etype":"users","label":"id","value_type":"blob","cardinality":"one","unique":true,"indexed":true,"required":true,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"22222222-2222-2222-2222-222222222222","etype":"users","label":"handle","value_type":"blob","cardinality":"one","unique":true,"indexed":true,"required":false,"checked_data_type":"string","indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"33333333-3333-3333-3333-333333333333","etype":"users","label":"age","value_type":"blob","cardinality":"one","unique":false,"indexed":true,"required":false,"checked_data_type":"number","indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"44444444-4444-4444-4444-444444444444","etype":"users","label":"bookshelves","value_type":"ref","cardinality":"many","unique":false,"indexed":false,"required":false,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":"bookshelves","reverse_label":"owner"},
+      {"id":"55555555-5555-5555-5555-555555555555","etype":"bookshelves","label":"id","value_type":"blob","cardinality":"one","unique":true,"indexed":true,"required":true,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"aaaaaaaa-1111-1111-1111-111111111111","etype":"bookshelves","label":"name","value_type":"blob","cardinality":"one","unique":false,"indexed":false,"required":false,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"aaaaaaaa-2222-2222-2222-222222222222","etype":"bookshelves","label":"order","value_type":"blob","cardinality":"one","unique":false,"indexed":true,"required":false,"checked_data_type":"number","indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"66666666-6666-6666-6666-666666666666","etype":"bookshelves","label":"books","value_type":"ref","cardinality":"many","unique":false,"indexed":false,"required":false,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":"books","reverse_label":"shelf"},
+      {"id":"77777777-7777-7777-7777-777777777777","etype":"books","label":"id","value_type":"blob","cardinality":"one","unique":true,"indexed":true,"required":true,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"88888888-8888-8888-8888-888888888888","etype":"books","label":"title","value_type":"blob","cardinality":"one","unique":false,"indexed":true,"required":false,"checked_data_type":"string","indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"99999999-9999-9999-9999-999999999999","etype":"users","label":"nickname","value_type":"blob","cardinality":"one","unique":false,"indexed":false,"required":false,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null}
+    ]
+  },
+  "cases": [
+    {"name":"checked-equality","query":{"users":{"$":{"where":{"handle":"alex"}}}},"indexes":["ave"],"attrs":["22222222-2222-2222-2222-222222222222"],"functions":0,"or_groups":0},
+    {"name":"typed-comparator","query":{"users":{"$":{"where":{"age":{"$gte":18}}}}},"indexes":["ave"],"attrs":["33333333-3333-3333-3333-333333333333"],"functions":1,"or_groups":0},
+    {"name":"constant-first-relationship-path","query":{"users":{"$":{"where":{"bookshelves.books.title":"Musashi"}}}},"indexes":["ave","vae","vae"],"attrs":["88888888-8888-8888-8888-888888888888","66666666-6666-6666-6666-666666666666","44444444-4444-4444-4444-444444444444"],"functions":0,"or_groups":0},
+    {"name":"reverse-relationship-path","query":{"books":{"$":{"where":{"shelf.owner.handle":"alex"}}}},"indexes":["ave","vae","vae"],"attrs":["22222222-2222-2222-2222-222222222222","44444444-4444-4444-4444-444444444444","66666666-6666-6666-6666-666666666666"],"functions":0,"or_groups":0},
+    {"name":"boolean-or","query":{"users":{"$":{"where":{"or":[{"handle":"alex"},{"handle":"joe"}]}}}},"indexes":["ave"],"attrs":["22222222-2222-2222-2222-222222222222"],"functions":0,"or_groups":1},
+    {"name":"indexed-not-needs-no-null-branch","query":{"users":{"$":{"where":{"handle":{"$not":"alex"}}}}},"indexes":["ave"],"attrs":["22222222-2222-2222-2222-222222222222"],"functions":1,"or_groups":0},
+    {"name":"unindexed-not-adds-null-branch","query":{"users":{"$":{"where":{"nickname":{"$ne":"alex"}}}}},"indexes":["ea","ea"],"attrs":["99999999-9999-9999-9999-999999999999","11111111-1111-1111-1111-111111111111"],"functions":2,"or_groups":1},
+    {"name":"nullable-index-set","query":{"users":{"$":{"where":{"handle":{"$in":["alex",null]}}}}},"indexes":["ave"],"attrs":["22222222-2222-2222-2222-222222222222"],"functions":0,"or_groups":0},
+    {"name":"entity-prefix","query":{"users":{"$":{"where":{"$entityIdStartsWith":"abc"}}}},"indexes":["av"],"attrs":["11111111-1111-1111-1111-111111111111"],"functions":1,"or_groups":0}
+  ]
+}

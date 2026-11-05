@@ -1,0 +1,1 @@
+drop table rust_realtime_event_consumers;

@@ -1,0 +1,390 @@
+# Production deployment kit (D3). Use deploy.sh and rollback.sh; see README.md.
+#
+# Relative paths resolve against self-hosting/ because both scripts pass
+# --project-directory. Every image is a digest-only reference and every
+# required setting fails closed. The production database is `postgres`;
+# `aux-postgres` is only for the staging BackendRelay database (P7.5) and must
+# never hold production data.
+#
+# One file drives two compose projects on the same host: `backendrelay`
+# (DEPLOY_STACK=production, database `postgres`) and `backendrelay-staging`
+# (DEPLOY_STACK=staging, database `aux-postgres`, separate network, port
+# bindings, volumes and object-storage buckets). See the staging section in
+# README.md.
+
+x-logging: &default-logging
+  driver: local
+  options:
+    max-size: "50m"
+    max-file: "5"
+
+services:
+  postgres:
+    # Production database only. The staging project defines this service too
+    # (it is the same file) but never starts it: deploy.sh starts the stack's
+    # own database and recreates the other services with --no-deps, and the
+    # staging server's DATABASE_URL points at aux-postgres.
+    image: "${INSTANT_POSTGRES_IMAGE:?set a digest-pinned PostgreSQL image built from self-hosting/postgres}"
+    restart: unless-stopped
+    stop_grace_period: 2m
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD to a strong URL-safe password}
+      POSTGRES_USER: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-instant}
+      # The server connects as this separate, unprivileged role. The image's
+      # init script creates it on a fresh data directory and grants REPLICATION.
+      INSTANT_DB_USER: ${INSTANT_DB_USER:-instant}
+      INSTANT_DB_PASSWORD: ${INSTANT_DB_PASSWORD:?set INSTANT_DB_PASSWORD to a strong URL-safe password}
+      # pgBackRest reads PGBACKREST_* directly. Repository settings and secrets
+      # live in pgbackrest.env, which Compose includes only when it exists.
+      PGBACKREST_STANZA: backendrelay
+      PGBACKREST_PG1_PATH: /var/lib/postgresql/data
+      PGBACKREST_PG1_USER: postgres
+      PGBACKREST_SPOOL_PATH: /var/spool/pgbackrest
+      PGBACKREST_ARCHIVE_ASYNC: "y"
+      PGBACKREST_COMPRESS_TYPE: zst
+      PGBACKREST_PROCESS_MAX: "2"
+      PGBACKREST_START_FAST: "y"
+    env_file:
+      - path: ./pgbackrest.env
+        required: false
+    volumes:
+      - "backend-db:/var/lib/postgresql/data"
+      - "pgbackrest-spool:/var/spool/pgbackrest"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    shm_size: ${INSTANT_PG_SHM_SIZE:-1gb}
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      default:
+        ipv4_address: ${POSTGRES_IP:-172.30.0.6}
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=20"
+      - "-c"
+      - "max_wal_senders=20"
+      - "-c"
+      - "max_slot_wal_keep_size=4GB"
+      - "-c"
+      - "shared_buffers=${INSTANT_PG_SHARED_BUFFERS:-6GB}"
+      - "-c"
+      - "effective_cache_size=${INSTANT_PG_EFFECTIVE_CACHE_SIZE:-16GB}"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_preload_libraries=pg_hint_plan,pg_stat_statements"
+      - "-c"
+      - "log_min_duration_statement=500ms"
+      - "-c"
+      - "output_plugin_libraries=wal2json"
+      - "-c"
+      - "random_page_cost=1.1"
+      # Archiving is opt-in: an enabled archive_command without a working
+      # repository retains every WAL segment.
+      - "-c"
+      - "archive_mode=${INSTANT_PG_ARCHIVE_MODE:-off}"
+      - "-c"
+      - "archive_command=pgbackrest --stanza=backendrelay archive-push %p"
+      - "-c"
+      - "archive_timeout=${INSTANT_PG_ARCHIVE_TIMEOUT:-60}"
+
+  aux-postgres:
+    # Staging only (P7.5). It has its own profile so a production deploy never
+    # needs the staging passwords; enable it with --profile staging, which
+    # deploy.sh does for DEPLOY_STACK=staging. Bugsink keeps its own SQLite
+    # volume in the monitoring overlay, so nothing here is shared with error
+    # tracking. This service never mounts the production volume or the
+    # production database.
+    profiles: ["staging"]
+    image: "${INSTANT_POSTGRES_IMAGE:?set a digest-pinned PostgreSQL image built from self-hosting/postgres}"
+    restart: unless-stopped
+    stop_grace_period: 1m
+    environment:
+      POSTGRES_PASSWORD: ${AUX_POSTGRES_PASSWORD:-}
+      POSTGRES_USER: postgres
+      POSTGRES_DB: ${AUX_POSTGRES_DB:-staging}
+      INSTANT_DB_USER: ${AUX_DB_USER:-staging}
+      INSTANT_DB_PASSWORD: ${AUX_DB_PASSWORD:-}
+    volumes:
+      - "aux-db:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    pids_limit: 256
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      default:
+        ipv4_address: ${AUX_POSTGRES_IP:-172.30.0.5}
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_slot_wal_keep_size=1GB"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "max_connections=100"
+      - "-c"
+      - "shared_preload_libraries=pg_hint_plan,pg_stat_statements"
+      - "-c"
+      - "log_min_duration_statement=500ms"
+      - "-c"
+      - "output_plugin_libraries=wal2json"
+      - "-c"
+      - "random_page_cost=1.1"
+
+  server:
+    image: "${INSTANT_SERVER_IMAGE:?pass the signed server digest to deploy.sh}"
+    restart: unless-stopped
+    # Production: this is `postgres`. deploy.sh starts the stack's database
+    # explicitly and recreates server, dashboard and caddy with --no-deps, so
+    # the staging project (whose database is aux-postgres) never starts the
+    # production service.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # The process drains live transports before aborting; keep Docker from
+    # sending SIGKILL at its 10s default while clients reconnect.
+    stop_grace_period: 45s
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 524288
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 1024
+    logging: *default-logging
+    networks:
+      default:
+        ipv4_address: ${SERVER_IP:-172.30.0.3}
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/instant-server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    environment:
+      WAL_HISTORY_STORAGE: pg
+      # DEPLOY_DB_SERVICE is `postgres` in production and `aux-postgres` in
+      # staging; deploy.sh and rollback.sh export it from DEPLOY_STACK.
+      DATABASE_URL: "postgresql://${INSTANT_DB_USER:-instant}:${INSTANT_DB_PASSWORD:?set INSTANT_DB_PASSWORD}@${DEPLOY_DB_SERVICE:-postgres}:5432/${POSTGRES_DB:-instant}?sslmode=disable"
+      CONNECTION_POOL_SIZE: ${CONNECTION_POOL_SIZE:-20}
+      INSTANT_BACKEND_URL: ${INSTANT_BACKEND_URL:?set INSTANT_BACKEND_URL}
+      INSTANT_DASHBOARD_URL: ${INSTANT_DASHBOARD_URL:?set INSTANT_DASHBOARD_URL}
+      INSTANT_SECURE_COOKIES: ${INSTANT_SECURE_COOKIES:-true}
+      # Caddy owns the fixed deploy subnet. It resolves the Cloudflare client
+      # address and sends it as X-Forwarded-For; the server trusts only this
+      # network, so per-IP limits never see Caddy's private address.
+      INSTANT_TRUSTED_PROXY_CIDRS: ${DEPLOY_SUBNET:?set the deploy network subnet, for example 172.30.0.0/24}
+      INSTANT_MAX_LIVE_SESSIONS_PER_IP: ${INSTANT_MAX_LIVE_SESSIONS_PER_IP:-}
+      INSTANT_MAX_SUBSCRIPTIONS_PER_SESSION: ${INSTANT_MAX_SUBSCRIPTIONS_PER_SESSION:-}
+      INSTANT_MAX_INSTAQL_QUERY_BYTES: ${INSTANT_MAX_INSTAQL_QUERY_BYTES:-}
+      INSTANT_STORAGE_MAX_UPLOAD_BYTES: ${INSTANT_STORAGE_MAX_UPLOAD_BYTES:-}
+      INSTANT_STORAGE_DOWNLOAD_URL_TTL_SECONDS: ${INSTANT_STORAGE_DOWNLOAD_URL_TTL_SECONDS:-}
+      INSTANT_MAGIC_CODE_RATE_LIMIT_PER_IP_HOUR: ${INSTANT_MAGIC_CODE_RATE_LIMIT_PER_IP_HOUR:-}
+      INSTANT_MAGIC_CODE_VERIFY_LIMIT_PER_IP_HOUR: ${INSTANT_MAGIC_CODE_VERIFY_LIMIT_PER_IP_HOUR:-}
+      INSTANT_MAGIC_CODE_DAILY_LIMIT_PER_APP: ${INSTANT_MAGIC_CODE_DAILY_LIMIT_PER_APP:-}
+      INSTANT_HISTORY_RETENTION_DAYS: ${INSTANT_HISTORY_RETENTION_DAYS:-}
+      INSTANT_TRANSACTION_RETENTION_DAYS: ${INSTANT_TRANSACTION_RETENTION_DAYS:-}
+      INSTANT_METRICS_ADDR: ${INSTANT_METRICS_ADDR:-127.0.0.1:9091}
+      INSTANT_METRICS_ALLOW_NONLOOPBACK: ${INSTANT_METRICS_ALLOW_NONLOOPBACK:-false}
+      INSTANT_SUPERUSER_EMAIL: ${INSTANT_SUPERUSER_EMAIL:-}
+      INSTANT_DASHBOARD_ALLOWED_EMAILS: ${INSTANT_DASHBOARD_ALLOWED_EMAILS:-}
+      INSTANT_DASHBOARD_SIGNUP: ${INSTANT_DASHBOARD_SIGNUP:-closed}
+      INSTANT_DASHBOARD_PRIVATE: ${INSTANT_DASHBOARD_PRIVATE:-}
+      INSTANT_DASHBOARD_GATEWAY_TOKEN: ${INSTANT_DASHBOARD_GATEWAY_TOKEN:-}
+      INSTANT_EPHEMERAL_APPS: ${INSTANT_EPHEMERAL_APPS:-false}
+      INSTANT_NIGHTLY_APP_BACKUPS: ${INSTANT_NIGHTLY_APP_BACKUPS:-}
+      INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_ID: ${INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_ID:-}
+      INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_SECRET: ${INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_SECRET:-}
+      # Email: Cloudflare Email Sending is the shipped provider. Legacy
+      # Postmark, SendGrid and Resend tokens stay available when selected.
+      POSTMARK_TOKEN: ${POSTMARK_TOKEN:-}
+      POSTMARK_ACCOUNT_TOKEN: ${POSTMARK_ACCOUNT_TOKEN:-}
+      SENDGRID_TOKEN: ${SENDGRID_TOKEN:-}
+      RESEND_TOKEN: ${RESEND_TOKEN:-}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      CLOUDFLARE_EMAIL_API_TOKEN: ${CLOUDFLARE_EMAIL_API_TOKEN:-}
+      INSTANT_TRANSACTIONAL_EMAIL_SENDER_EMAIL: ${INSTANT_TRANSACTIONAL_EMAIL_SENDER_EMAIL:-}
+      INSTANT_EMAIL_PROVIDER: ${INSTANT_EMAIL_PROVIDER:-cloudflare}
+      INSTANT_DASHBOARD_EMAIL_SENDER_NAME: ${INSTANT_DASHBOARD_EMAIL_SENDER_NAME:-Instant}
+      INSTANT_DASHBOARD_EMAIL_SENDER_EMAIL: ${INSTANT_DASHBOARD_EMAIL_SENDER_EMAIL:-}
+      INSTANT_APP_EMAIL_SENDER_NAME: ${INSTANT_APP_EMAIL_SENDER_NAME:-Instant}
+      INSTANT_APP_EMAIL_SENDER_EMAIL: ${INSTANT_APP_EMAIL_SENDER_EMAIL:-}
+      INSTANT_TEAM_EMAIL_SENDER_NAME: ${INSTANT_TEAM_EMAIL_SENDER_NAME:-Instant}
+      INSTANT_TEAM_EMAIL_SENDER_EMAIL: ${INSTANT_TEAM_EMAIL_SENDER_EMAIL:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      # Object storage. S3_ENDPOINT and S3_PUBLIC_ENDPOINT are explicit so the
+      # same stack can run against R2, MinIO or another S3-compatible service.
+      INSTANT_S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
+      INSTANT_S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+      INSTANT_S3_REGION: ${S3_REGION:-auto}
+      S3_ENDPOINT: ${S3_ENDPOINT:?set S3_ENDPOINT}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:?set S3_PUBLIC_ENDPOINT}
+      S3_VIRTUAL_HOST_STYLE: ${S3_VIRTUAL_HOST_STYLE:-false}
+      S3_BUCKET: ${S3_FILES_BUCKET:?set S3_FILES_BUCKET}
+      S3_APP_BACKUPS_BUCKET: ${S3_BACKUPS_BUCKET:?set S3_BACKUPS_BUCKET}
+    volumes:
+      - "server_secrets:/home/instant/config"
+
+  dashboard:
+    # The Caddy-based image from DASHBOARD.md D1.4/D9.4, not client/Dockerfile.www.
+    image: "${INSTANT_DASHBOARD_IMAGE:?pass the signed dashboard digest to deploy.sh}"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+      # Caddy runs as 10001 and writes autosave state under these paths.
+      - /config:uid=10001,gid=10001,mode=700
+      - /data:uid=10001,gid=10001,mode=700
+    cap_drop:
+      - ALL
+    # The Caddy image sets cap_net_bind_service on /usr/bin/caddy. Keep the
+    # capability available so no-new-privileges does not turn exec into EPERM.
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    logging: *default-logging
+    networks:
+      default:
+        ipv4_address: ${DASHBOARD_IP:-172.30.0.4}
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    environment:
+      # client/Dockerfile.www reads INSTANT_BACKEND_URL at start; the
+      # BackendRelay dashboard image reads BR_API_URL. Set both so either
+      # image serves the same public configuration.
+      INSTANT_BACKEND_URL: ${INSTANT_BACKEND_URL:?set INSTANT_BACKEND_URL}
+      BR_API_URL: ${INSTANT_BACKEND_URL:?set INSTANT_BACKEND_URL}
+      BR_WS_ORIGIN: ${BR_WS_ORIGIN:-}
+      BR_DASHBOARD_API_URL: ${INSTANT_DASHBOARD_API_URL:-}
+      BR_STORAGE_ORIGIN: ${INSTANT_STORAGE_ORIGIN:-}
+
+  caddy:
+    image: "${CADDY_IMAGE:?set a digest-pinned Caddy image (2.11.x)}"
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+      dashboard:
+        condition: service_healthy
+    ports:
+      # The staging project on the same host binds other host ports (its
+      # .env.staging.example uses 8080/8443) because production owns 80/443.
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    logging: *default-logging
+    networks:
+      default:
+        ipv4_address: ${CADDY_IP:-172.30.0.2}
+    healthcheck:
+      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      BACKEND_DOMAIN: ${BACKEND_DOMAIN:?set BACKEND_DOMAIN}
+      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:?set DASHBOARD_DOMAIN}
+      TLS_CERT_FILE: ${TLS_CERT_FILE:-/etc/caddy/tls/origin.pem}
+      TLS_KEY_FILE: ${TLS_KEY_FILE:-/etc/caddy/tls/origin-key.pem}
+      CADDY_MAX_RESTORE_BODY: ${CADDY_MAX_RESTORE_BODY:-1100MB}
+      CADDY_MAX_UPLOAD_BODY: ${CADDY_MAX_UPLOAD_BODY:-110MB}
+      CADDY_MAX_MANAGEMENT_BODY: ${CADDY_MAX_MANAGEMENT_BODY:-2MB}
+      CADDY_MAX_REQUEST_BODY: ${CADDY_MAX_REQUEST_BODY:-8MB}
+      CLOUDFLARE_DNS_API_TOKEN: ${CLOUDFLARE_DNS_API_TOKEN:-}
+      CADDY_EMAIL: ${CADDY_EMAIL:-}
+      # Space-separated upstreams. Add server-b:8888 here with the second
+      # replica; Caddy health-checks each one and load-balances requests.
+      SERVER_UPSTREAMS: ${SERVER_UPSTREAMS:-server:8888}
+    volumes:
+      - "${CADDY_CONFIG_FILE:-./deploy/Caddyfile}:/etc/caddy/Caddyfile:ro"
+      - "${DEPLOY_TLS_DIR:-./deploy/tls}:/etc/caddy/tls:ro"
+      - "caddy_data:/data"
+      - "caddy_config:/config"
+
+  smoke:
+    # One-shot SDK-protocol query used by deploy.sh step 6. It is not a
+    # long-running service; deploy.sh runs it with --profile smoke.
+    image: "${DEPLOY_SMOKE_IMAGE:?set a digest-pinned node image for the SDK smoke test}"
+    profiles: ["smoke"]
+    restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 32
+    logging: *default-logging
+    environment:
+      SMOKE_API_URL: ${DEPLOY_SMOKE_API_URL:-}
+      SMOKE_APP_ID: ${CANARY_APP_ID:-}
+      SMOKE_ADMIN_TOKEN_FILE: /run/secrets/canary-admin-token
+      SMOKE_TIMEOUT_SECONDS: ${DEPLOY_SMOKE_TIMEOUT_SECONDS:-30}
+    volumes:
+      - "./deploy/smoke.mjs:/app/smoke.mjs:ro"
+      - "${CANARY_ADMIN_TOKEN_FILE:-/dev/null}:/run/secrets/canary-admin-token:ro"
+    command: ["node", "/app/smoke.mjs"]
+
+networks:
+  default:
+    name: ${DEPLOY_NETWORK_NAME:-backendrelay}
+    ipam:
+      config:
+        - subnet: ${DEPLOY_SUBNET:?set the deploy network subnet, for example 172.30.0.0/24}
+
+volumes:
+  backend-db:
+  aux-db:
+  pgbackrest-spool:
+  server_secrets:
+  caddy_data:
+  caddy_config:

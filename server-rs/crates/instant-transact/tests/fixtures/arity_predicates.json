@@ -1,0 +1,70 @@
+{
+  "source": "instantdb/instant@4e0a1bd8 server/src/instant/db/transaction.clj:32-69,126-153; predicates captured with Clojure 1.12.0 and spec.alpha 0.3.218 after coerce!",
+  "cases": [
+    {
+      "name": "tuple-underflow-predicates-retain-step-order",
+      "input": [
+        [],
+        ["add-triple"],
+        ["add-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"],
+        ["add-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "22222222-2222-2222-2222-222222222222"],
+        ["deep-merge-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "22222222-2222-2222-2222-222222222222"],
+        ["retract-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "22222222-2222-2222-2222-222222222222"],
+        ["add-attr"],
+        ["update-attr"],
+        ["delete-attr"],
+        ["restore-attr"],
+        ["delete-entity"],
+        ["rule-params", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"]
+      ],
+      "errors": [
+        {"path": [0], "message": "#{:restore-attr}"},
+        {"path": [1], "message": ":instant.db.model.triple/lookup"},
+        {"path": [2], "message": ":instant.db.model.triple/attr-id"},
+        {"path": [3], "message": ":instant.db.model.triple/value"},
+        {"path": [4], "message": ":instant.db.model.triple/value"},
+        {"path": [5], "message": ":instant.db.model.triple/value"},
+        {"path": [6, 1], "message": "instant.db.model.attr/value-type"},
+        {"path": [7, 1], "message": "map?"},
+        {"path": [8, 0], "message": "#{:restore-attr}"},
+        {"path": [9, 0], "message": "#{:delete-attr}"},
+        {"path": [10, 0], "message": "#{:restore-attr}"},
+        {"path": [11, 0], "message": "#{:restore-attr}"}
+      ]
+    },
+    {
+      "name": "unknown-and-overflow-predicates-retain-operation-order",
+      "input": [
+        ["unknown-op"],
+        ["add-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "22222222-2222-2222-2222-222222222222", "value", null, "extra"],
+        ["deep-merge-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "22222222-2222-2222-2222-222222222222", {}, null, "extra"],
+        ["retract-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "22222222-2222-2222-2222-222222222222", "value", "extra"],
+        ["delete-attr", "22222222-2222-2222-2222-222222222222", "extra"],
+        ["restore-attr", "22222222-2222-2222-2222-222222222222", "extra"],
+        ["delete-entity", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "users", "extra"],
+        ["rule-params", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "users", {}, "extra"]
+      ],
+      "errors": [
+        {"path": [0, 0], "message": "#{:restore-attr}"},
+        {"path": [1, 0], "message": "#{:restore-attr}"},
+        {"path": [2, 0], "message": "#{:restore-attr}"},
+        {"path": [3, 0], "message": "#{:restore-attr}"},
+        {"path": [4, 0], "message": "#{:restore-attr}"},
+        {"path": [5, 0], "message": "#{:delete-attr}"},
+        {"path": [6, 0], "message": "#{:restore-attr}"},
+        {"path": [7, 0], "message": "#{:restore-attr}"}
+      ]
+    }
+  ],
+  "accepted": [
+    ["add-attr", {
+      "id": "aaaaaaaa-1111-1111-1111-111111111111",
+      "forward-identity": ["aaaaaaaa-2222-2222-2222-222222222222", "users", "city"],
+      "value-type": "blob",
+      "cardinality": "one",
+      "unique?": false,
+      "index?": false
+    }, "discarded"],
+    ["update-attr", {"id": "22222222-2222-2222-2222-222222222222", "index?": true}, "discarded"]
+  ]
+}

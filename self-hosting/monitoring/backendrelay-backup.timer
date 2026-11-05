@@ -1,0 +1,11 @@
+[Unit]
+Description=BackendRelay twice-daily off-host backup
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00 UTC
+RandomizedDelaySec=5min
+Persistent=true
+Unit=backendrelay-backup.service
+
+[Install]
+WantedBy=timers.target

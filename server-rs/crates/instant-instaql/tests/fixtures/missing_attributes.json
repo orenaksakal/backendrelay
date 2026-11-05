@@ -1,0 +1,47 @@
+{
+  "source": "server/test/instant/db/instaql_test.clj:3672-3760 and server/src/instant/db/instaql.clj:890-905,1162-1224",
+  "cases": [
+    {
+      "name": "missing top-level entity type",
+      "query": {"zippy": {}},
+      "admin": false,
+      "missing_paths": ["zippy"]
+    },
+    {
+      "name": "missing direct where attribute",
+      "query": {"users": {"$": {"where": {"zippy": "alex"}}}},
+      "admin": false,
+      "missing_paths": ["users"]
+    },
+    {
+      "name": "missing terminal attribute on relationship path",
+      "query": {"users": {"$": {"where": {"bookshelves.zippy": "alex"}}}},
+      "admin": false,
+      "missing_paths": ["users"]
+    },
+    {
+      "name": "missing child relationship preserves parent",
+      "query": {"users": {"zippy": {}}},
+      "admin": false,
+      "missing_paths": ["users.zippy"]
+    },
+    {
+      "name": "missing child where preserves relationship node",
+      "query": {"users": {"bookshelves": {"$": {"where": {"zippy": "x"}}}}},
+      "admin": false,
+      "missing_paths": ["users.bookshelves"]
+    },
+    {
+      "name": "missing entity skips page attribute resolution",
+      "query": {"zippy": {"$": {"order": {"anything": "desc"}, "limit": 1}}},
+      "admin": false,
+      "missing_paths": ["zippy"]
+    },
+    {
+      "name": "admin count over missing entity remains missing",
+      "query": {"zippy": {"$": {"aggregate": "count"}}},
+      "admin": true,
+      "missing_paths": ["zippy"]
+    }
+  ]
+}

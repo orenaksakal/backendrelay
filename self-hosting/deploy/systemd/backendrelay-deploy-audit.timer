@@ -1,0 +1,12 @@
+[Unit]
+Description=BackendRelay weekly app-rules audit (deploy kit)
+Documentation=file:///opt/backendrelay/self-hosting/deploy/README.md
+
+[Timer]
+OnCalendar=Mon *-*-* 06:00:00 UTC
+RandomizedDelaySec=30min
+Persistent=true
+Unit=backendrelay-deploy-audit.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,74 @@
+{
+  "source": "instantdb/instant@4e0a1bd8 server/src/instant/db/model/attr.clj:57-97 and server/src/instant/util/spec.clj:4-5; predicates captured after coerce! with Clojure 1.12.0 and spec.alpha 0.3.218",
+  "cases": [
+    {
+      "name": "identity-collection-shapes-retain-field-path-and-step-order",
+      "input": [
+        ["update-attr", {"id": "22222222-2222-2222-2222-222222222222", "forward-identity": null}],
+        ["update-attr", {"id": "22222222-2222-2222-2222-222222222222", "forward-identity": "users.name"}],
+        ["update-attr", {"id": "22222222-2222-2222-2222-222222222222", "forward-identity": []}],
+        ["update-attr", {"id": "22222222-2222-2222-2222-222222222222", "forward-identity": ["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]}],
+        ["update-attr", {"id": "22222222-2222-2222-2222-222222222222", "forward-identity": ["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "users"]}],
+        ["update-attr", {"id": "22222222-2222-2222-2222-222222222222", "forward-identity": ["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "users", "name", "extra"]}],
+        ["update-attr", {"id": "22222222-2222-2222-2222-222222222222", "reverse-identity": null}]
+      ],
+      "errors": [
+        {"path": [0, 1, "forward-identity"], "message": "uuid?"},
+        {"path": [1, 1, "forward-identity"], "message": "(fn [%] (or (nil? %) (sequential? %)))"},
+        {"path": [2, 1, "forward-identity"], "message": "uuid?"},
+        {"path": [3, 1, "forward-identity"], "message": ":instant.db.model.attr/etype"},
+        {"path": [4, 1, "forward-identity"], "message": ":instant.db.model.attr/label"},
+        {"path": [5, 1, "forward-identity", 3], "message": "(clojure.spec.alpha/cat :id uuid? :etype :instant.db.model.attr/etype :label :instant.db.model.attr/label)"},
+        {"path": [6, 1, "reverse-identity"], "message": "uuid?"}
+      ]
+    },
+    {
+      "name": "identity-components-and-required-reverse-retain-predicate-order",
+      "input": [
+        ["update-attr", {
+          "id": "22222222-2222-2222-2222-222222222222",
+          "forward-identity": ["not-a-uuid", null, "  "],
+          "reverse-identity": ["also-not-a-uuid", "\t", null]
+        }],
+        ["add-attr", {
+          "id": "aaaaaaaa-1111-1111-1111-111111111111",
+          "forward-identity": ["aaaaaaaa-2222-2222-2222-222222222222", "users", "friends"],
+          "value-type": "ref",
+          "cardinality": "many",
+          "unique?": false,
+          "index?": false
+        }],
+        ["add-attr", {
+          "id": "aaaaaaaa-3333-3333-3333-333333333333",
+          "forward-identity": ["aaaaaaaa-4444-4444-4444-444444444444", "users", "manager"],
+          "reverse-identity": null,
+          "value-type": "ref",
+          "cardinality": "one",
+          "unique?": false,
+          "index?": false
+        }]
+      ],
+      "errors": [
+        {"path": [0, 1, "forward-identity", 0], "message": "uuid?"},
+        {"path": [0, 1, "forward-identity", 1], "message": "string?"},
+        {"path": [0, 1, "forward-identity", 2], "message": "(complement clojure.string/blank?)"},
+        {"path": [0, 1, "reverse-identity", 0], "message": "uuid?"},
+        {"path": [0, 1, "reverse-identity", 1], "message": "(complement clojure.string/blank?)"},
+        {"path": [0, 1, "reverse-identity", 2], "message": "string?"},
+        {"path": [1, 1], "message": "(fn [%] (contains? % :reverse-identity))"},
+        {"path": [2, 1, "reverse-identity"], "message": "uuid?"}
+      ]
+    }
+  ],
+  "accepted": [
+    ["add-attr", {
+      "id": "aaaaaaaa-5555-5555-5555-555555555555",
+      "forward-identity": ["aaaaaaaa-6666-6666-6666-666666666666", "users", "nickname"],
+      "reverse-identity": {"ignored": "for blob multi-spec branch"},
+      "value-type": "blob",
+      "cardinality": "one",
+      "unique?": false,
+      "index?": false
+    }]
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/util/instaql.clj:42-67 make-sort-key-compare delegates unequal fields to Clojure numeric compare",
+  "cases": [
+    {
+      "name": "ascending-adjacent-integers-above-f64-exact-range",
+      "query": {"bookshelves": {"$": {"order": {"order": "asc"}}}},
+      "entities": [
+        {"id": "00000000-0000-0000-0000-000000000001", "order": 9007199254740993},
+        {"id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "order": 9007199254740992}
+      ],
+      "expected_ids": [
+        "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "00000000-0000-0000-0000-000000000001"
+      ]
+    },
+    {
+      "name": "descending-adjacent-integers-above-f64-exact-range",
+      "query": {"bookshelves": {"$": {"order": {"order": "desc"}}}},
+      "entities": [
+        {"id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "order": 9007199254740992},
+        {"id": "00000000-0000-0000-0000-000000000001", "order": 9007199254740993}
+      ],
+      "expected_ids": [
+        "00000000-0000-0000-0000-000000000001",
+        "ffffffff-ffff-ffff-ffff-ffffffffffff"
+      ]
+    },
+    {
+      "name": "signed-to-unsigned-64-bit-boundary",
+      "query": {"bookshelves": {"$": {"order": {"order": "asc"}}}},
+      "entities": [
+        {"id": "00000000-0000-0000-0000-000000000001", "order": 9223372036854775808},
+        {"id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "order": 9223372036854775807}
+      ],
+      "expected_ids": [
+        "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "00000000-0000-0000-0000-000000000001"
+      ]
+    },
+    {
+      "name": "arbitrary-precision-positive-integers",
+      "query": {"bookshelves": {"$": {"order": {"order": "asc"}}}},
+      "entities": [
+        {"id": "00000000-0000-0000-0000-000000000001", "order": 18446744073709551617},
+        {"id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "order": 18446744073709551616}
+      ],
+      "expected_ids": [
+        "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "00000000-0000-0000-0000-000000000001"
+      ]
+    },
+    {
+      "name": "arbitrary-precision-negative-integers",
+      "query": {"bookshelves": {"$": {"order": {"order": "asc"}}}},
+      "entities": [
+        {"id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "order": -18446744073709551616},
+        {"id": "00000000-0000-0000-0000-000000000001", "order": -18446744073709551617}
+      ],
+      "expected_ids": [
+        "00000000-0000-0000-0000-000000000001",
+        "ffffffff-ffff-ffff-ffff-ffffffffffff"
+      ]
+    }
+  ]
+}

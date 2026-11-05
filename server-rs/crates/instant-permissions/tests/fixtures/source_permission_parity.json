@@ -1,0 +1,134 @@
+{
+  "provenance": {
+    "expectation": "source-derived",
+    "productionCapture": "unavailable",
+    "instant": "instantdb/instant@45d3ffbb server/src/instant/model/rule.clj:246-306,333-440; server/test/instant/db/cel_test.clj:15-106",
+    "celJava": "cel-java@v0.11.1 parser/src/main/java/dev/cel/parser/CelStandardMacro.java:29-79; runtime/src/main/java/dev/cel/runtime/DefaultInterpreter.java:603-684; runtime/src/test/java/dev/cel/runtime/CelRuntimeTest.java:454-689"
+  },
+  "cel": [
+    {
+      "name": "has requires a field selection",
+      "source": "has(1)",
+      "expected": "compile-error"
+    },
+    {
+      "name": "standard macro arity is checked at compile time",
+      "source": "[1].all()",
+      "expected": "compile-error"
+    },
+    {
+      "name": "division by zero propagates as an evaluation error",
+      "source": "1 / 0 == 0",
+      "expected": "evaluation-error"
+    },
+    {
+      "name": "false suppresses an error on the left of and",
+      "source": "(1 / 0 == 0) && false",
+      "expected": "false"
+    },
+    {
+      "name": "true suppresses an error on the left of or",
+      "source": "(1 / 0 == 0) || true",
+      "expected": "true"
+    },
+    {
+      "name": "empty all uses the macro identity",
+      "source": "[].all(value, value > 0)",
+      "expected": "true"
+    },
+    {
+      "name": "empty exists one uses the macro identity",
+      "source": "[].exists_one(value, value > 0)",
+      "expected": "false"
+    }
+  ],
+  "persisted": [
+    {
+      "name": "null entity action continues to entity default",
+      "rules": {
+        "posts": {
+          "allow": {
+            "view": null,
+            "$default": false
+          }
+        },
+        "$default": {
+          "allow": {
+            "view": true
+          }
+        }
+      },
+      "expected": "false"
+    },
+    {
+      "name": "null entity default continues to global action",
+      "rules": {
+        "posts": {
+          "allow": {
+            "$default": null
+          }
+        },
+        "$default": {
+          "allow": {
+            "view": true
+          }
+        }
+      },
+      "expected": "true"
+    },
+    {
+      "name": "false entity action does not continue to permissive fallback",
+      "rules": {
+        "posts": {
+          "allow": {
+            "view": false
+          }
+        },
+        "$default": {
+          "allow": {
+            "view": true
+          }
+        }
+      },
+      "expected": "false"
+    },
+    {
+      "name": "invalid selected action propagates instead of using fallback",
+      "rules": {
+        "posts": {
+          "allow": {
+            "view": "!10"
+          }
+        },
+        "$default": {
+          "allow": {
+            "view": true
+          }
+        }
+      },
+      "expected": "compile-error"
+    },
+    {
+      "name": "runtime failure propagates instead of becoming a denial",
+      "rules": {
+        "posts": {
+          "allow": {
+            "view": "1 / 0 == 0"
+          }
+        }
+      },
+      "expected": "evaluation-error"
+    },
+    {
+      "name": "non-boolean result propagates instead of becoming a denial",
+      "rules": {
+        "posts": {
+          "allow": {
+            "view": "data.ownerId"
+          }
+        }
+      },
+      "expected": "invalid-return-type"
+    }
+  ]
+}

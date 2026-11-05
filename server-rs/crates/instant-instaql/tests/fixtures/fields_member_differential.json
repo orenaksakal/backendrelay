@@ -1,0 +1,14 @@
+{
+  "catalog": {
+    "attributes": [
+      {"id":"11111111-1111-1111-1111-111111111111","etype":"users","label":"id","value_type":"blob","cardinality":"one","unique":true,"indexed":false,"required":true,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"22222222-2222-2222-2222-222222222222","etype":"users","label":"handle","value_type":"blob","cardinality":"one","unique":false,"indexed":false,"required":false,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null},
+      {"id":"33333333-3333-3333-3333-333333333333","etype":"users","label":"tags","value_type":"blob","cardinality":"many","unique":false,"indexed":false,"required":false,"checked_data_type":null,"indexing":false,"checking_data_type":false,"reverse_etype":null,"reverse_label":null}
+    ]
+  },
+  "cases": [
+    {"name":"mixed-members-retained-but-only-string-labels-select","fields":["handle",1,null,false,{"field":"handle"},["handle"],"missing","tags"],"expected_attr_ids":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"]},
+    {"name":"non-string-members-select-only-id","fields":[1,true,null,{"field":"handle"}],"expected_attr_ids":["11111111-1111-1111-1111-111111111111"]},
+    {"name":"empty-fields-select-only-id","fields":[],"expected_attr_ids":["11111111-1111-1111-1111-111111111111"]}
+  ]
+}

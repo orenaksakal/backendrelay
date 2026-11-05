@@ -1,0 +1,42 @@
+{
+  "source": "instantdb/instant@4e0a1bd8 server/src/instant/db/model/attr.clj:57-97 and server/src/instant/db/transaction.clj:25-48",
+  "cases": [
+    {
+      "name": "attribute-boolean-predicates-retain-schema-field-order",
+      "input": [["add-attr", {
+        "id": "aaaaaaaa-1111-1111-1111-111111111111",
+        "forward-identity": ["aaaaaaaa-2222-2222-2222-222222222222", "users", "name"],
+        "value-type": "blob",
+        "cardinality": "one",
+        "unique?": "yes",
+        "index?": 1,
+        "required?": [],
+        "setting-unique?": {},
+        "indexing?": null,
+        "checking-data-type?": false
+      }]],
+      "errors": [
+        {"path": [0, 1, "unique?"], "message": "boolean?"},
+        {"path": [0, 1, "index?"], "message": "boolean?"},
+        {"path": [0, 1, "required?"], "message": "boolean?"},
+        {"path": [0, 1, "setting-unique?"], "message": "boolean?"},
+        {"path": [0, 1, "indexing?"], "message": "boolean?"}
+      ]
+    },
+    {
+      "name": "tuple-string-and-map-predicates-retain_step_order",
+      "input": [
+        ["delete-entity", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", 7],
+        ["rule-params", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", false, {}],
+        ["rule-params", "cccccccc-cccc-cccc-cccc-cccccccccccc", []],
+        ["add-triple", "dddddddd-dddd-dddd-dddd-dddddddddddd", "22222222-2222-2222-2222-222222222222", "value", []]
+      ],
+      "errors": [
+        {"path": [0, 2], "message": "string?"},
+        {"path": [1, 2], "message": "string?"},
+        {"path": [2, 2], "message": "map?"},
+        {"path": [3, 4], "message": "map?"}
+      ]
+    }
+  ]
+}

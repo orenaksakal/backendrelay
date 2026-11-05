@@ -1,0 +1,13 @@
+[Unit]
+Description=BackendRelay encrypted off-host backup
+After=docker.service backendrelay-backup-resume.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/python3 /opt/backendrelay/self-hosting/recovery.py backup --config /etc/backendrelay/backup.json
+ExecStopPost=/usr/bin/python3 /opt/backendrelay/self-hosting/recovery.py resume-writers --config /etc/backendrelay/backup.json
+TimeoutStartSec=55min
+TimeoutStopSec=5min
+KillMode=control-group

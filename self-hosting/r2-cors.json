@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": ["ORIGIN_PLACEHOLDER"],
+        "methods": ["GET", "HEAD", "PUT", "DELETE"],
+        "headers": ["Content-Type", "If-Match", "If-None-Match"]
+      },
+      "exposeHeaders": ["ETag", "Content-Encoding"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

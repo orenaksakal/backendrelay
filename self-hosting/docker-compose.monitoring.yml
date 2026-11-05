@@ -1,0 +1,267 @@
+# Merge after the base docker-compose.yml file (and the execution overlay).
+# No public domains; only Grafana and the optional Bugsink service are
+# published, to host loopback for SSH or Tailscale access.
+services:
+  server:
+    environment:
+      # The Prometheus container scrapes this over the private compose network.
+      # INSTANT_METRICS_ALLOW_NONLOOPBACK only widens the bind to private or
+      # unspecified addresses; public addresses stay rejected.
+      INSTANT_METRICS_ADDR: "0.0.0.0:9091"
+      INSTANT_METRICS_ALLOW_NONLOOPBACK: "true"
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+  prometheus:
+    image: ${PROMETHEUS_IMAGE:?set a reviewed digest-pinned Prometheus image}
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=5GB
+      - --web.listen-address=0.0.0.0:9090
+    mem_limit: 1g
+    cpus: 0.75
+    pids_limit: 128
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+  alertmanager:
+    image: ${ALERTMANAGER_IMAGE:?set a reviewed digest-pinned Alertmanager image}
+    restart: unless-stopped
+    command: [--config.file=/etc/alertmanager/alertmanager.yml, --storage.path=/alertmanager, --cluster.listen-address=]
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${PUSHOVER_USER_KEY_FILE:?set an absolute file with the Pushover user key}:/run/secrets/pushover-user-key:ro
+      - ${PUSHOVER_TOKEN_FILE:?set an absolute file with the Pushover application token}:/run/secrets/pushover-token:ro
+      - ${DEADMAN_WEBHOOK_FILE:?set an absolute file with the external dead-man URL}:/run/secrets/deadman-webhook:ro
+      - alertmanager_data:/alertmanager
+  grafana:
+    image: ${GRAFANA_IMAGE:?set a reviewed digest-pinned Grafana image}
+    restart: unless-stopped
+    ports: [127.0.0.1:3001:3000]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana-password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - ${GRAFANA_PASSWORD_FILE:?set an absolute file with the Grafana admin password}:/run/secrets/grafana-password:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - default
+      - logs
+  bugsink:
+    # Self-hosted Sentry-protocol error tracking (D11). SQLite lives on a named
+    # volume; the port is loopback-only, so reach it through `tailscale serve`
+    # or an SSH tunnel rather than exposing it to the host network.
+    image: ${BUGSINK_IMAGE:?set a reviewed digest-pinned Bugsink image}
+    profiles: ["errors"]
+    restart: unless-stopped
+    env_file:
+      # Dotenv file with SECRET_KEY=<random value>; never inline the key.
+      - path: ${BUGSINK_SECRET_KEY_FILE:?set a file containing SECRET_KEY=<value>}
+        required: true
+    environment:
+      BASE_URL: ${BUGSINK_BASE_URL:-http://127.0.0.1:8000}
+      PORT: "8000"
+    ports: [127.0.0.1:8000:8000]
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - bugsink_data:/data
+  node-exporter:
+    image: ${NODE_EXPORTER_IMAGE:?set a reviewed digest-pinned node-exporter image}
+    restart: unless-stopped
+    pid: host
+    command: [--path.rootfs=/host, --collector.textfile.directory=/textfile, --no-collector.wifi, --no-collector.hwmon]
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    read_only: true
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - /:/host:ro,rslave
+      - ${MONITORING_TEXTFILE_DIR:?set the host metrics textfile directory}:/textfile:ro
+  postgres-exporter:
+    image: ${POSTGRES_EXPORTER_IMAGE:?set a reviewed digest-pinned postgres-exporter image}
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_URI: "${POSTGRES_EXPORTER_DSN:?set the postgres-exporter DSN, for example postgres:5432/instant?sslmode=disable}"
+      DATA_SOURCE_USER: ${POSTGRES_EXPORTER_USER:-backendrelay_monitor}
+      DATA_SOURCE_PASS_FILE: /run/secrets/postgres-password
+      PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres-exporter/queries.yml
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - ${POSTGRES_MONITOR_PASSWORD_FILE:?set an absolute monitor password file}:/run/secrets/postgres-password:ro
+      - ${POSTGRES_MONITOR_QUERIES_FILE:-./monitoring/postgres-queries.yml}:/etc/postgres-exporter/queries.yml:ro
+  canary:
+    # Outside-in realtime probe. It talks to the public API URL, not the
+    # compose network name, so it also exercises the edge and TLS path.
+    image: "${CANARY_IMAGE:-backendrelay/canary:local}"
+    build:
+      context: ./canary
+    profiles: ["canary"]
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    environment:
+      CANARY_API_URL: ${CANARY_API_URL:-}
+      CANARY_APP_ID: ${CANARY_APP_ID:-}
+      CANARY_ADMIN_TOKEN_FILE: /run/secrets/canary-admin-token
+      CANARY_HEALTHCHECK_URL: ${CANARY_HEALTHCHECK_URL:-}
+      CANARY_INTERVAL_SECONDS: ${CANARY_INTERVAL_SECONDS:-60}
+      CANARY_TIMEOUT_SECONDS: ${CANARY_TIMEOUT_SECONDS:-10}
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      # /dev/null is an empty secret, so enabling the profile without
+      # configuring the token fails at startup instead of creating a directory.
+      - ${CANARY_ADMIN_TOKEN_FILE:-/dev/null}:/run/secrets/canary-admin-token:ro
+  loki:
+    image: ${LOKI_IMAGE:?set a reviewed digest-pinned Loki image}
+    restart: unless-stopped
+    command: [-config.file=/etc/loki/config.yml]
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - ./monitoring/loki.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    networks:
+      - logs
+  docker-socket-proxy:
+    image: ${DOCKER_SOCKET_PROXY_IMAGE:?set a reviewed digest-pinned docker-socket-proxy image}
+    restart: unless-stopped
+    environment:
+      # Alloy only needs the container list and log endpoints. Every other
+      # Docker API route stays disabled, and the socket is read-only.
+      CONTAINERS: "1"
+      EVENTS: "0"
+      IMAGES: "0"
+      INFO: "0"
+      NETWORKS: "0"
+      PING: "0"
+      POST: "0"
+      SERVICES: "0"
+      SESSION: "0"
+      SWARM: "0"
+      SYSTEM: "0"
+      TASKS: "0"
+      VOLUMES: "0"
+    mem_limit: 64m
+    cpus: 0.1
+    pids_limit: 32
+    read_only: true
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - logs
+    tmpfs:
+      - /tmp
+  alloy:
+    image: ${ALLOY_IMAGE:?set a reviewed digest-pinned Grafana Alloy image}
+    restart: unless-stopped
+    depends_on:
+      - docker-socket-proxy
+      - loki
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - ./monitoring/alloy.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy/data
+    networks:
+      - logs
+
+volumes:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:
+  loki_data:
+  alloy_data:
+  bugsink_data:
+networks:
+  logs:
+    internal: true

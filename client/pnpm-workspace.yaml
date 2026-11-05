@@ -1,0 +1,15 @@
+packages:
+  - 'packages/*'
+  - 'sandbox/*'
+  - 'www'
+  - 'dashboard'
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  '@tailwindcss/oxide': false
+  core-js: false
+  esbuild: true
+  msgpackr-extract: false
+  msw: false
+  protobufjs: false
+  sharp: false

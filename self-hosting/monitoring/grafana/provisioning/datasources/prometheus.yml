@@ -1,0 +1,9 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: backendrelay-prometheus
+    type: prometheus
+    access: proxy
+    url: http://server:9090
+    isDefault: true
+    editable: false

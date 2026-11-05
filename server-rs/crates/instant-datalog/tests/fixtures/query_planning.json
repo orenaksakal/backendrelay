@@ -1,0 +1,65 @@
+{
+  "name": "top-level OR branches are isolated and gathered with a full join",
+  "source": "server/src/instant/db/datalog.clj:2150-2327",
+  "clauses": [
+    {
+      "kind": "or",
+      "join_symbol": "?e",
+      "clauses": [
+        {
+          "kind": "pattern",
+          "pattern": {
+            "index": { "key": "ea" },
+            "components": [
+              { "kind": "variable", "value": "?e" },
+              {
+                "kind": "constant",
+                "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "pattern",
+          "pattern": {
+            "index": { "key": "ea" },
+            "components": [
+              { "kind": "variable", "value": "?e" },
+              {
+                "kind": "constant",
+                "value": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "expected_next_index": 3,
+  "expected_final_table": "match-2",
+  "expected_cte_names": ["match-0", "match-1", "match-2"],
+  "expected_gather": [
+    ":match-2",
+    {
+      ":select": [
+        ":match-0.*",
+        ":match-1.*",
+        [
+          [
+            ":coalesce",
+            ":match-0.match-0-entity-id",
+            ":match-1.match-1-entity-id"
+          ],
+          ":match-2-entity-id"
+        ]
+      ],
+      ":from": ":match-0",
+      ":full-join": [
+        ":match-1",
+        [":=", ":0", ":1"]
+      ]
+    },
+    ":not-materialized"
+  ]
+}
+

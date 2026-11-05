@@ -1,0 +1,77 @@
+# Local dry-run overlay for the deployment kit. Merge it after
+# docker-compose.yml and point CADDY_CONFIG_FILE at Caddyfile.local. It adds a
+# disposable MinIO endpoint and leaves the production `postgres` service in
+# place, so the whole stack can be rehearsed on a desktop with Docker.
+#
+# The production stack never loads this file.
+services:
+  caddy:
+    volumes:
+      - "./deploy/Caddyfile.local:/etc/caddy/Caddyfile:ro"
+
+  minio:
+    image: "${MINIO_IMAGE:?set a digest-pinned MinIO image for the dry run}"
+    restart: unless-stopped
+    command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:?set the dry-run S3 access key}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:?set the dry-run S3 secret key}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - "minio-data:/data"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  minio-init:
+    image: "${MINIO_MC_IMAGE:?set a digest-pinned MinIO client image for the dry run}"
+    restart: "no"
+    depends_on:
+      - minio
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+          mc alias set local http://minio:9000 "$$S3_ACCESS_KEY_ID" "$$S3_SECRET_ACCESS_KEY" && break
+          sleep 2
+        done
+        mc mb --ignore-existing "local/$$S3_FILES_BUCKET"
+        mc mb --ignore-existing "local/$$S3_BACKUPS_BUCKET"
+    environment:
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?}
+      S3_FILES_BUCKET: ${S3_FILES_BUCKET:?}
+      S3_BACKUPS_BUCKET: ${S3_BACKUPS_BUCKET:?}
+      MC_CONFIG_DIR: /tmp/.mc
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 32
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+volumes:
+  minio-data:

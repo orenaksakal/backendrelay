@@ -1,0 +1,17 @@
+[Unit]
+Description=BackendRelay outside-in realtime canary (deploy kit)
+Documentation=file:///opt/backendrelay/self-hosting/deploy/README.md
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+UMask=0077
+# The canary profile lives in the monitoring overlay. Configure CANARY_* and
+# every monitoring image/secret in deploy/.env before enabling this unit.
+ExecStart=/usr/bin/docker compose --project-name backendrelay --project-directory /opt/backendrelay/self-hosting --env-file /opt/backendrelay/self-hosting/deploy/.env --file /opt/backendrelay/self-hosting/deploy/docker-compose.yml --file /opt/backendrelay/self-hosting/docker-compose.monitoring.yml --profile canary up -d --no-deps canary
+ExecStop=/usr/bin/docker compose --project-name backendrelay --project-directory /opt/backendrelay/self-hosting --env-file /opt/backendrelay/self-hosting/deploy/.env --file /opt/backendrelay/self-hosting/deploy/docker-compose.yml --file /opt/backendrelay/self-hosting/docker-compose.monitoring.yml --profile canary stop canary
+TimeoutStartSec=5min
+TimeoutStopSec=2min

@@ -1,0 +1,85 @@
+{
+  "oracle": "4e0a1bd8 server/test/instant/db/transaction_test.clj:409-516 update-modes; both add-triple and deep-merge-triple accept create only for missing direct IDs/lookups and update only for existing direct IDs/lookups",
+  "cases": [
+    {
+      "name": "add-create-new-id",
+      "input": [["add-triple", "aaaaaaaa-1000-0000-0000-000000000001", "88888888-8888-8888-8888-888888888888", "add-create-new-id", {"mode": "create"}], ["add-triple", "aaaaaaaa-1000-0000-0000-000000000001", "77777777-7777-7777-7777-777777777777", "aaaaaaaa-1000-0000-0000-000000000001"]],
+      "outcome": "ok"
+    },
+    {
+      "name": "add-create-new-lookup",
+      "input": [["add-triple", ["77777777-7777-7777-7777-777777777777", "aaaaaaaa-1000-0000-0000-000000000101"], "88888888-8888-8888-8888-888888888888", "add-create-new-lookup-value", {"mode": "create"}]],
+      "outcome": "ok"
+    },
+    {
+      "name": "add-create-existing-id",
+      "input": [["add-triple", "aaaaaaaa-1000-0000-0000-000000000300", "88888888-8888-8888-8888-888888888888", "add-create-existing-id", {"mode": "create"}]],
+      "outcome": "create-existing"
+    },
+    {
+      "name": "add-create-existing-lookup",
+      "input": [["add-triple", ["77777777-7777-7777-7777-777777777777", "aaaaaaaa-1000-0000-0000-000000000300"], "88888888-8888-8888-8888-888888888888", "add-create-existing-lookup", {"mode": "create"}]],
+      "outcome": "create-existing"
+    },
+    {
+      "name": "add-update-new-id",
+      "input": [["add-triple", "aaaaaaaa-1000-0000-0000-000000000002", "88888888-8888-8888-8888-888888888888", "add-update-new-id", {"mode": "update"}]],
+      "outcome": "update-missing"
+    },
+    {
+      "name": "add-update-new-lookup",
+      "input": [["add-triple", ["77777777-7777-7777-7777-777777777777", "aaaaaaaa-1000-0000-0000-000000000102"], "88888888-8888-8888-8888-888888888888", "add-update-new-lookup-value", {"mode": "update"}]],
+      "outcome": "update-missing"
+    },
+    {
+      "name": "add-update-existing-id",
+      "input": [["add-triple", "aaaaaaaa-1000-0000-0000-000000000300", "88888888-8888-8888-8888-888888888888", "add-update-existing-id", {"mode": "update"}]],
+      "outcome": "ok"
+    },
+    {
+      "name": "add-update-existing-lookup",
+      "input": [["add-triple", ["77777777-7777-7777-7777-777777777777", "aaaaaaaa-1000-0000-0000-000000000300"], "88888888-8888-8888-8888-888888888888", "add-update-existing-lookup", {"mode": "update"}]],
+      "outcome": "ok"
+    },
+    {
+      "name": "deep-merge-create-new-id",
+      "input": [["deep-merge-triple", "aaaaaaaa-1000-0000-0000-000000000003", "88888888-8888-8888-8888-888888888888", "deep-create-new-id", {"mode": "create"}], ["add-triple", "aaaaaaaa-1000-0000-0000-000000000003", "77777777-7777-7777-7777-777777777777", "aaaaaaaa-1000-0000-0000-000000000003"]],
+      "outcome": "ok"
+    },
+    {
+      "name": "deep-merge-create-new-lookup",
+      "input": [["deep-merge-triple", ["77777777-7777-7777-7777-777777777777", "aaaaaaaa-1000-0000-0000-000000000103"], "88888888-8888-8888-8888-888888888888", "deep-create-new-lookup-value", {"mode": "create"}]],
+      "outcome": "ok"
+    },
+    {
+      "name": "deep-merge-create-existing-id",
+      "input": [["deep-merge-triple", "aaaaaaaa-1000-0000-0000-000000000300", "88888888-8888-8888-8888-888888888888", "deep-create-existing-id", {"mode": "create"}]],
+      "outcome": "create-existing"
+    },
+    {
+      "name": "deep-merge-create-existing-lookup",
+      "input": [["deep-merge-triple", ["77777777-7777-7777-7777-777777777777", "aaaaaaaa-1000-0000-0000-000000000300"], "88888888-8888-8888-8888-888888888888", "deep-create-existing-lookup", {"mode": "create"}]],
+      "outcome": "create-existing"
+    },
+    {
+      "name": "deep-merge-update-new-id",
+      "input": [["deep-merge-triple", "aaaaaaaa-1000-0000-0000-000000000004", "88888888-8888-8888-8888-888888888888", "deep-update-new-id", {"mode": "update"}]],
+      "outcome": "update-missing"
+    },
+    {
+      "name": "deep-merge-update-new-lookup",
+      "input": [["deep-merge-triple", ["77777777-7777-7777-7777-777777777777", "aaaaaaaa-1000-0000-0000-000000000104"], "88888888-8888-8888-8888-888888888888", "deep-update-new-lookup-value", {"mode": "update"}]],
+      "outcome": "update-missing"
+    },
+    {
+      "name": "deep-merge-update-existing-id",
+      "input": [["deep-merge-triple", "aaaaaaaa-1000-0000-0000-000000000300", "88888888-8888-8888-8888-888888888888", "deep-update-existing-id", {"mode": "update"}]],
+      "outcome": "ok"
+    },
+    {
+      "name": "deep-merge-update-existing-lookup",
+      "input": [["deep-merge-triple", ["77777777-7777-7777-7777-777777777777", "aaaaaaaa-1000-0000-0000-000000000300"], "88888888-8888-8888-8888-888888888888", "deep-update-existing-lookup", {"mode": "update"}]],
+      "outcome": "ok"
+    }
+  ]
+}

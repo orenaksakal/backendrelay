@@ -1,0 +1,277 @@
+[
+  {
+    "name": "small bound entity set beats a million-row checked date scan",
+    "source": "server/src/instant/db/datalog.clj:1522-1705",
+    "pattern": {
+      "index": { "key": "ave", "data_type": "date" },
+      "components": [
+        { "kind": "variable", "value": "?entity" },
+        { "kind": "constant", "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+        {
+          "kind": "function",
+          "value": {
+            "function": "comparator",
+            "argument": {
+              "operation": "$gt",
+              "data_type": "date",
+              "value": "2026-01-01T00:00:00Z"
+            }
+          }
+        }
+      ]
+    },
+    "options": {
+      "attribute_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": 1000000
+      }
+    },
+    "symbol_cardinalities": { "?entity": 12 },
+    "expected_index": "triples_pkey"
+  },
+  {
+    "name": "checked numeric comparator selects its typed expression index",
+    "source": "server/src/instant/db/datalog.clj:1508-1537,1655-1705",
+    "pattern": {
+      "index": { "key": "ave", "data_type": "number" },
+      "components": [
+        { "kind": "any" },
+        { "kind": "constant", "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+        {
+          "kind": "function",
+          "value": {
+            "function": "comparator",
+            "argument": {
+              "operation": "$gte",
+              "data_type": "number",
+              "value": 18
+            }
+          }
+        }
+      ]
+    },
+    "options": {
+      "attribute_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": 100
+      }
+    },
+    "expected_index": "triples_number_type_idx"
+  },
+  {
+    "name": "like comparator selects the trigram string index",
+    "source": "server/src/instant/db/datalog.clj:1508-1537,1655-1705",
+    "pattern": {
+      "index": { "key": "ave", "data_type": "string" },
+      "components": [
+        { "kind": "any" },
+        { "kind": "constant", "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+        {
+          "kind": "function",
+          "value": {
+            "function": "comparator",
+            "argument": {
+              "operation": "$ilike",
+              "data_type": "string",
+              "value": "%instant%"
+            }
+          }
+        }
+      ]
+    },
+    "options": {
+      "attribute_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": 10000
+      }
+    },
+    "expected_index": "triples_string_trgm_gist_idx"
+  },
+  {
+    "name": "reference value lookup selects the VAE index",
+    "source": "server/src/instant/db/datalog.clj:1508-1537,1655-1705",
+    "pattern": {
+      "index": { "key": "vae" },
+      "components": [
+        { "kind": "any" },
+        { "kind": "constant", "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+        { "kind": "constant", "value": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee" }
+      ]
+    },
+    "options": {
+      "attribute_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": 5000
+      },
+      "attribute_value_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": {
+          "\"eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee\"": 2
+        }
+      }
+    },
+    "expected_index": "vae_uuid_index"
+  },
+  {
+    "name": "isNull false can drive exact entity probes",
+    "source": "server/src/instant/db/datalog.clj:1158-1227,1541-1553",
+    "pattern": {
+      "index": { "key": "ave" },
+      "components": [
+        { "kind": "any" },
+        { "kind": "constant", "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+        {
+          "kind": "function",
+          "value": {
+            "function": "is-null",
+            "argument": {
+              "attr_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+              "nil": false,
+              "reference": false,
+              "reverse": false,
+              "indexed": false,
+              "indexed_checked_type": null
+            }
+          }
+        }
+      ]
+    },
+    "options": {
+      "attribute_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": 100
+      },
+      "attribute_is_null_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": {
+          "cccccccc-cccc-cccc-cccc-cccccccccccc": {
+            "null": 73,
+            "not_null": 27
+          }
+        }
+      }
+    },
+    "expected_index": "triples_pkey"
+  },
+  {
+    "name": "isNull true cannot drive the NOT IN entity subquery",
+    "source": "server/src/instant/db/datalog.clj:1158-1227,1541-1553",
+    "pattern": {
+      "index": { "key": "ave" },
+      "components": [
+        { "kind": "any" },
+        { "kind": "constant", "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+        {
+          "kind": "function",
+          "value": {
+            "function": "is-null",
+            "argument": {
+              "attr_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+              "nil": true,
+              "reference": false,
+              "reverse": false,
+              "indexed": false,
+              "indexed_checked_type": null
+            }
+          }
+        }
+      ]
+    },
+    "options": {
+      "attribute_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": 100
+      },
+      "attribute_is_null_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": {
+          "cccccccc-cccc-cccc-cccc-cccccccccccc": {
+            "null": 73,
+            "not_null": 27
+          }
+        }
+      }
+    },
+    "expected_index": "ave_with_e_index"
+  },
+  {
+    "name": "matching EAV index wins a generic primary-key tie",
+    "source": "server/src/instant/db/datalog.clj:1655-1705",
+    "pattern": {
+      "index": { "key": "eav" },
+      "components": [
+        { "kind": "constant", "value": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee" },
+        { "kind": "constant", "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+        { "kind": "any" }
+      ]
+    },
+    "options": {
+      "attribute_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": 100
+      },
+      "attribute_entity_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": {
+          "\"eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee\"": 1
+        }
+      }
+    },
+    "expected_index": "eav_uuid_index"
+  },
+  {
+    "name": "checked string equality does not misuse the trigram-only path",
+    "source": "server/src/instant/db/datalog.clj:1508-1537",
+    "pattern": {
+      "index": { "key": "ave", "data_type": "string" },
+      "components": [
+        { "kind": "any" },
+        { "kind": "constant", "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+        { "kind": "constant", "value": "instant" }
+      ]
+    },
+    "options": {
+      "attribute_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": 10000
+      },
+      "attribute_value_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": {
+          "\"instant\"": 4
+        }
+      }
+    },
+    "expected_index": "ave_with_e_index"
+  },
+  {
+    "name": "multiple unique AV constants keep the AV index path",
+    "source": "server/src/instant/db/datalog.clj:1133-1198,1655-1705",
+    "pattern": {
+      "index": { "key": "av" },
+      "components": [
+        { "kind": "any" },
+        { "kind": "constant", "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+        { "kind": "constants", "value": ["first", "second"] }
+      ]
+    },
+    "options": {
+      "attribute_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": 10000
+      },
+      "attribute_value_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": {
+          "\"first\"": 1,
+          "\"second\"": 1
+        }
+      }
+    },
+    "expected_index": "av_index"
+  },
+  {
+    "name": "created-at constraint selects the attribute timestamp index",
+    "source": "server/src/instant/db/datalog.clj:1518-1537,1655-1705",
+    "pattern": {
+      "index": { "key": "ea" },
+      "components": [
+        { "kind": "any" },
+        { "kind": "constant", "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+        { "kind": "any" },
+        { "kind": "constant", "value": 1700000000000 }
+      ]
+    },
+    "options": {
+      "attribute_cardinalities": {
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb": 10000
+      }
+    },
+    "expected_index": "triples_created_at_idx"
+  }
+]

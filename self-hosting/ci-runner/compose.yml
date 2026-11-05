@@ -1,0 +1,44 @@
+name: backendrelay-ci-runner
+
+# One containerized GitHub Actions runner. register.sh supplies the
+# registration token the first time; entrypoint.sh keeps the resulting runner
+# config in a named volume so restarts never need a new token.
+services:
+  runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: backendrelay-ci-runner:2.338.2
+    restart: unless-stopped
+    # Jobs start compose stacks on the host daemon and reach them on
+    # 127.0.0.1, so the runner shares the host network namespace. This adds
+    # no trust beyond the Docker socket, which is already root-equivalent.
+    network_mode: host
+    group_add:
+      - "${DOCKER_GID:-973}"
+    security_opt:
+      - no-new-privileges:true
+    # Playwright launches browsers inside this container; the default 64 MiB
+    # /dev/shm is too small for Chromium.
+    shm_size: "1gb"
+    environment:
+      RUNNER_REPO_URL: "${RUNNER_REPO_URL}"
+      RUNNER_TOKEN: "${RUNNER_TOKEN:-}"
+      RUNNER_NAME: "${RUNNER_NAME:-framework-desktop}"
+      RUNNER_WORK_DIR: "${RUNNER_WORK_DIR}"
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${RUNNER_WORK_DIR}:${RUNNER_WORK_DIR}"
+      - runner-home-cache:/home/runner/.cache
+      - runner-mise-data:/home/runner/.local/share/mise
+      - runner-state:/home/runner/state
+
+volumes:
+  runner-home-cache:
+  runner-mise-data:
+  runner-state:

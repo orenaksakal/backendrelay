@@ -1,0 +1,75 @@
+[workspace]
+members = ["crates/instant-auth", "crates/instant-datalog", "crates/instant-http", "crates/instant-instaql", "crates/instant-permissions", "crates/instant-pg", "crates/instant-realtime", "crates/instant-server", "crates/instant-test-support", "crates/instant-transact", "crates/instant-wal"]
+exclude = ["vendor/cel"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.98"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive", "rc"] }
+serde_json = { version = "1.0", features = ["arbitrary_precision", "raw_value"] }
+serde_urlencoded = "0.7"
+subtle = "2.6"
+sha2 = "0.11"
+thiserror = "2.0"
+uuid = { version = "1.18", features = ["serde", "v4", "v7"] }
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+cel = { version = "0.14.3", features = ["json"] }
+rand = "0.10"
+ring = "0.17"
+regex = "1.12"
+semver = "1.0"
+sentry = { version = "0.49.3", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls"] }
+sentry-tracing = "0.49.3"
+base64 = "0.22"
+crc32fast = "1.5"
+deadpool-postgres = "0.14.2"
+flate2 = "1.1"
+axum = { version = "0.8.9", features = ["ws"] }
+hyper = { version = "1.11", features = ["client", "http1"] }
+hyper-rustls = { version = "0.27.9", default-features = false, features = ["http1", "rustls-native-certs", "webpki-roots"] }
+hyper-util = { version = "0.1.20", features = ["client-legacy", "http1", "tokio"] }
+jsonwebtoken = { version = "11.0", default-features = false, features = ["aws_lc_rs", "use_pem"] }
+futures-util = "0.3"
+hmac = "0.13"
+infer = "0.22.0"
+ipnet = "2.11"
+mimalloc = { version = "=0.1.52", default-features = false }
+# Ready-only replication reads rely on the audited native buffer ownership in 0.8.1.
+pg_walstream = "=0.8.1"
+proptest = "1.5"
+prost = "0.14.4"
+reqwest = { version = "0.13", default-features = false, features = ["form", "json", "multipart", "query", "rustls", "stream"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+url = { version = "2.5", features = ["serde"] }
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4", "with-serde_json-1", "with-uuid-1"] }
+tokio-postgres-rustls = { version = "0.14", features = ["aws-lc-rs", "webpki-roots"] }
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std", "tls12"] }
+tokio = { version = "1.53", features = ["fs", "io-util", "macros", "net", "rt", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-util = { version = "0.7", features = ["io", "io-util"] }
+tokio-tungstenite = "0.29"
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6.11", features = ["catch-panic", "limit"] }
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+zip = { version = "9.1", default-features = false, features = ["bzip2", "deflate", "zstd"] }
+zstd = "0.14.3"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "thin"
+debug = 1
+strip = "none"
+
+[patch.crates-io]
+cel = { path = "vendor/cel" }

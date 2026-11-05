@@ -1,0 +1,32 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+rule_files: [/etc/prometheus/alerts.yml]
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: [alertmanager:9093]
+scrape_configs:
+  - job_name: backendrelay
+    sample_limit: 3000
+    static_configs:
+      - targets: [server:9091]
+  - job_name: canary
+    sample_limit: 100
+    static_configs:
+      - targets: [canary:9465]
+  - job_name: host
+    sample_limit: 20000
+    static_configs:
+      - targets: [node-exporter:9100]
+  - job_name: postgres
+    sample_limit: 10000
+    static_configs:
+      - targets: [postgres-exporter:9187]
+  - job_name: prometheus
+    static_configs:
+      - targets: [127.0.0.1:9090]
+  - job_name: alertmanager
+    static_configs:
+      - targets: [alertmanager:9093]

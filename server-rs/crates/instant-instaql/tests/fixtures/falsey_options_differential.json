@@ -1,0 +1,34 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/db/instaql.clj:440-532 coerce-option-map! uses when-let/truthiness for these public option values; beforeInclusive and afterInclusive deliberately use when-some instead",
+  "cases": [
+    {"name": "false-where-is-absent", "options": {"where": false}},
+    {"name": "false-order-is-absent", "options": {"order": false}},
+    {"name": "false-limit-is-absent", "options": {"limit": false}},
+    {"name": "false-first-is-absent", "options": {"first": false}},
+    {"name": "false-last-is-absent", "options": {"last": false}},
+    {"name": "false-offset-is-absent", "options": {"offset": false}},
+    {"name": "false-before-is-absent", "options": {"before": false}},
+    {"name": "false-after-is-absent", "options": {"after": false}},
+    {"name": "false-aggregate-is-absent", "options": {"aggregate": false}},
+    {"name": "false-fields-is-absent", "options": {"fields": false}},
+    {"name": "false-before-inclusive-is-validated-then-omitted", "options": {"beforeInclusive": false}},
+    {"name": "false-after-inclusive-is-validated-then-omitted", "options": {"afterInclusive": false}},
+    {
+      "name": "all-when-let-options-can-be-false-together",
+      "options": {
+        "where": false,
+        "order": false,
+        "limit": false,
+        "first": false,
+        "last": false,
+        "offset": false,
+        "before": false,
+        "after": false,
+        "aggregate": false,
+        "fields": false,
+        "beforeInclusive": false,
+        "afterInclusive": false
+      }
+    }
+  ]
+}

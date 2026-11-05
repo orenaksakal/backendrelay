@@ -1,0 +1,13 @@
+[Unit]
+Description=Resume BackendRelay writers after interrupted backup
+After=docker.service
+Requires=docker.service
+Before=backendrelay-backup.service
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/python3 /opt/backendrelay/self-hosting/recovery.py resume-writers --config /etc/backendrelay/backup.json
+
+[Install]
+WantedBy=multi-user.target

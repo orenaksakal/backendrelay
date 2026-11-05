@@ -1,0 +1,25 @@
+{
+  "oracle": "4e0a1bd8 server/test/instant/db/instaql_test.clj:3197-3227 and server/src/instant/db/datalog.clj:305-336",
+  "cases": [
+    {
+      "name": "direct-forward-reference-not",
+      "query": {"users":{"$":{"where":{"bookshelves":{"$not":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}}}}},
+      "expected": {"index":"vae","attribute":"44444444-4444-4444-4444-444444444444","component":"value","excluded":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}
+    },
+    {
+      "name": "direct-forward-reference-ne-alias",
+      "query": {"users":{"$":{"where":{"bookshelves":{"$ne":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"}}}}},
+      "expected": {"index":"vae","attribute":"44444444-4444-4444-4444-444444444444","component":"value","excluded":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"}
+    },
+    {
+      "name": "direct-reverse-reference-not",
+      "query": {"bookshelves":{"$":{"where":{"owner":{"$not":"cccccccc-cccc-4ccc-8ccc-cccccccccccc"}}}}},
+      "expected": {"index":"vae","attribute":"44444444-4444-4444-4444-444444444444","component":"entity","excluded":"cccccccc-cccc-4ccc-8ccc-cccccccccccc"}
+    },
+    {
+      "name": "nested-terminal-reference-not",
+      "query": {"users":{"$":{"where":{"bookshelves.books":{"$not":"dddddddd-dddd-4ddd-8ddd-dddddddddddd"}}}}},
+      "expected": {"index":"vae","attribute":"66666666-6666-6666-6666-666666666666","component":"value","excluded":"dddddddd-dddd-4ddd-8ddd-dddddddddddd"}
+    }
+  ]
+}

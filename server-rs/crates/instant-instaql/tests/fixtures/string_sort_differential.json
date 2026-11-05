@@ -1,0 +1,53 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/util/instaql.clj:42-67 make-sort-key-compare delegates unequal strings to Clojure compare, which uses java.lang.String UTF-16 code-unit ordering",
+  "cases": [
+    {
+      "name": "ascending-supplementary-before-private-use-bmp",
+      "query": {"books": {"$": {"order": {"title": "asc"}}}},
+      "entities": [
+        {"id": "00000000-0000-0000-0000-000000000001", "title": ""},
+        {"id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "title": "😀"}
+      ],
+      "expected_ids": [
+        "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "00000000-0000-0000-0000-000000000001"
+      ]
+    },
+    {
+      "name": "descending-supplementary-after-private-use-bmp",
+      "query": {"books": {"$": {"order": {"title": "desc"}}}},
+      "entities": [
+        {"id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "title": "😀"},
+        {"id": "00000000-0000-0000-0000-000000000001", "title": ""}
+      ],
+      "expected_ids": [
+        "00000000-0000-0000-0000-000000000001",
+        "ffffffff-ffff-ffff-ffff-ffffffffffff"
+      ]
+    },
+    {
+      "name": "lowest-supplementary-before-highest-bmp",
+      "query": {"books": {"$": {"order": {"title": "asc"}}}},
+      "entities": [
+        {"id": "00000000-0000-0000-0000-000000000001", "title": "￿"},
+        {"id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "title": "𐀀"}
+      ],
+      "expected_ids": [
+        "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "00000000-0000-0000-0000-000000000001"
+      ]
+    },
+    {
+      "name": "bmp-prefix-still-orders-before-supplementary-suffix",
+      "query": {"books": {"$": {"order": {"title": "asc"}}}},
+      "entities": [
+        {"id": "00000000-0000-0000-0000-000000000001", "title": "a😀"},
+        {"id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "title": "a"}
+      ],
+      "expected_ids": [
+        "00000000-0000-0000-0000-000000000001",
+        "ffffffff-ffff-ffff-ffff-ffffffffffff"
+      ]
+    }
+  ]
+}

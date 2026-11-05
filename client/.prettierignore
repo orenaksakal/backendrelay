@@ -1,0 +1,11 @@
+www/.output
+www/dist-site
+www/.astro
+www/src/routeTree.gen.ts
+dashboard/src/routeTree.gen.ts
+dashboard/.vitest
+dashboard/playwright-report
+dashboard/test-results
+**/.turbo
+**/dist
+.pytest_cache

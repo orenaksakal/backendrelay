@@ -1,0 +1,14 @@
+[Unit]
+Description=BackendRelay weekly app-rules audit (deploy kit)
+Documentation=file:///opt/backendrelay/self-hosting/deploy/README.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+Nice=10
+# instant-server audit writes JSON lines and exits non-zero on findings. The
+# journal keeps the output next to the unit result.
+ExecStart=/usr/bin/docker compose --project-name backendrelay --project-directory /opt/backendrelay/self-hosting --env-file /opt/backendrelay/self-hosting/deploy/.env --file /opt/backendrelay/self-hosting/deploy/docker-compose.yml exec -T server /usr/local/bin/instant-server audit
+TimeoutStartSec=5min

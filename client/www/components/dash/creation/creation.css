@@ -1,0 +1,334 @@
+.creation-page {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 48px 36px 64px;
+  color: var(--dash-ink);
+}
+.creation-header {
+  max-width: 650px;
+  margin-bottom: 38px;
+}
+.creation-header h1 {
+  font-size: 28px;
+  font-weight: 550;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+  margin: 14px 0;
+}
+.creation-header > p:last-child {
+  color: var(--dash-muted);
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 60ch;
+}
+.creation-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(240px, 0.75fr);
+  gap: 50px;
+  align-items: start;
+}
+.creation-panel {
+  background: var(--dash-surface);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+  min-width: 0;
+}
+.creation-panel form {
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+}
+.creation-step {
+  font-size: 12px !important;
+  letter-spacing: 0.06em;
+  color: var(--dash-muted);
+}
+.creation-panel h2 {
+  font-size: 23px;
+  line-height: 1.4;
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+.creation-panel h3 {
+  font-size: 14px;
+  font-weight: 500;
+}
+.creation-panel p {
+  font-size: 14px;
+  color: var(--dash-muted);
+  line-height: 1.65;
+}
+.creation-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 13px;
+}
+.creation-panel input,
+.creation-panel .dashboard-select {
+  padding: 12px;
+  border: 1px solid var(--dash-line);
+  background: var(--dash-surface);
+  color: var(--dash-ink);
+  border-radius: 8px;
+  font-size: 13px;
+  width: 100%;
+}
+.creation-panel .creation-hint {
+  font-size: 13px;
+  margin-top: -12px;
+}
+.creation-page .wb-actions {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.creation-panel dl {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-size: 13px;
+}
+.creation-panel dl > div {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.creation-panel dt {
+  color: var(--dash-muted);
+  font-size: 13px;
+}
+.creation-panel dd {
+  overflow-wrap: anywhere;
+}
+.creation-panel code {
+  font-size: 13px;
+}
+.creation-guide {
+  padding: 0 0 0 32px;
+  border-left: 1px solid var(--dash-line);
+}
+.creation-guide h2 {
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 16px 0 30px;
+}
+.creation-guide ol {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  list-style: decimal;
+  padding-left: 20px;
+}
+.creation-guide li {
+  padding-left: 6px;
+}
+.creation-guide li::marker {
+  font-size: 13px;
+  color: var(--dash-muted);
+  font-variant-numeric: tabular-nums;
+}
+.creation-guide strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.creation-guide li p {
+  color: var(--dash-muted);
+  font-size: 13px;
+  line-height: 1.7;
+  margin-top: 8px;
+}
+.creation-error {
+  color: var(--dash-danger) !important;
+  border-left: 3px solid var(--dash-danger);
+  padding-left: 14px;
+}
+.creation-notice {
+  color: var(--dash-muted);
+}
+.creation-candidate {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 15px;
+  background: var(--dash-subtle);
+  border: 1px solid var(--dash-line);
+  border-radius: 8px;
+}
+.creation-candidate strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.creation-candidate span {
+  font-size: 13px;
+  color: var(--dash-accent);
+}
+.creation-new-attempt {
+  border-top: 1px solid var(--dash-line);
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.creation-panel .creation-checkbox {
+  flex-direction: row;
+  align-items: start;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--dash-muted);
+}
+.creation-checkbox input {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.creation-cancel {
+  align-self: start;
+  color: var(--dash-accent);
+  font-size: 13px;
+}
+.creation-page :is(button, input, .dashboard-select, a):focus-visible {
+  outline: 2px solid var(--dash-accent);
+  outline-offset: 3px;
+}
+.creation-page button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.creation-loading {
+  padding: 30px;
+  color: var(--dash-muted);
+  font-size: 13px;
+}
+.creation-compact {
+  padding: 16px;
+}
+.creation-compact .creation-header {
+  margin-bottom: 24px;
+}
+.creation-compact .creation-header h1 {
+  font-size: 24px;
+}
+.creation-compact .creation-layout {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+.creation-compact .creation-guide {
+  display: none;
+}
+.creation-compact .creation-panel {
+  padding: 22px;
+}
+@media (max-width: 800px) {
+  .creation-layout {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .creation-guide {
+    border-left: 0;
+    border-top: 1px solid var(--dash-line);
+    padding: 25px 0 0;
+  }
+}
+@media (max-width: 500px) {
+  .creation-page {
+    padding: 28px 18px;
+  }
+  .creation-panel {
+    padding: 22px;
+  }
+  .creation-compact {
+    padding: 8px;
+  }
+}
+.creation-profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.creation-profile-fields legend {
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.creation-panel .creation-experience {
+  flex-direction: row;
+  align-items: start;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 1px solid var(--dash-line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.creation-experience:has(input:checked) {
+  border-color: var(--dash-accent);
+  background: var(--dash-subtle);
+}
+.creation-experience input {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.creation-experience span {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.creation-experience strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.creation-experience small {
+  font-size: 13px;
+  color: var(--dash-muted);
+  line-height: 1.6;
+}
+
+.creation-layout {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 560px;
+  gap: 24px;
+}
+.creation-guide {
+  display: none;
+}
+.creation-compact {
+  padding: 12px;
+}
+.creation-compact .creation-header {
+  margin-bottom: 24px;
+}
+.creation-compact .creation-header h1 {
+  font-size: 22px;
+}
+
+/* Keep form spacing consistent in full-page onboarding and compact dialogs. */
+.creation-page .creation-panel {
+  padding: 28px;
+  border: 1px solid var(--dash-line);
+  border-radius: 12px;
+}
+.creation-page.creation-compact {
+  padding: 24px;
+}
+.creation-page .creation-layout {
+  max-width: 640px;
+}
+@media (max-width: 640px) {
+  .creation-page {
+    padding: 28px 20px 40px;
+  }
+  .creation-page .creation-panel {
+    padding: 20px;
+  }
+  .creation-page.creation-compact {
+    padding: 20px;
+  }
+}

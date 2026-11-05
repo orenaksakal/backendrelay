@@ -1,0 +1,7 @@
+{
+  "version": "dev",
+  "googleLogin": false,
+  "signup": "open",
+  "ephemeralApps": false,
+  "private": false
+}

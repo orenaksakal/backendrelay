@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the BackendRelay weekly scale regression
+
+[Timer]
+OnCalendar=Sun 04:00
+Persistent=true
+Unit=backendrelay-weekly-scale.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,196 @@
+services:
+  postgres:
+    image: "${INSTANT_POSTGRES_IMAGE:-backendrelay/postgres:17-local}"
+    build:
+      context: ./postgres
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD to a strong URL-safe password}
+      # Bootstrap superuser. The server connects as the separate, unprivileged
+      # INSTANT_DB_USER role created by the image's init script.
+      POSTGRES_USER: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-instant}
+      INSTANT_DB_USER: ${INSTANT_DB_USER:-instant}
+      INSTANT_DB_PASSWORD: ${INSTANT_DB_PASSWORD:?set INSTANT_DB_PASSWORD to a strong URL-safe password}
+      # pgBackRest reads PGBACKREST_* directly. Only fixed, non-empty settings
+      # belong here; repository options and secrets come from pgbackrest.env,
+      # which Compose includes when it exists. Leaving a variable out is what
+      # keeps an optional repository unconfigured: pgBackRest rejects empty.
+      PGBACKREST_STANZA: backendrelay
+      PGBACKREST_PG1_PATH: /var/lib/postgresql/data
+      # pgBackRest needs the superuser for backup and restore functions.
+      PGBACKREST_PG1_USER: postgres
+      PGBACKREST_SPOOL_PATH: /var/spool/pgbackrest
+      PGBACKREST_ARCHIVE_ASYNC: "y"
+      PGBACKREST_COMPRESS_TYPE: zst
+      PGBACKREST_PROCESS_MAX: "2"
+      PGBACKREST_START_FAST: "y"
+    env_file:
+      - path: ./pgbackrest.env
+        required: false
+    volumes:
+      - "backend-db:/var/lib/postgresql/data"
+      - "pgbackrest-spool:/var/spool/pgbackrest"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=20"
+      - "-c"
+      - "max_wal_senders=20"
+      - "-c"
+      - "max_slot_wal_keep_size=4GB"
+      - "-c"
+      - "shared_buffers=${INSTANT_PG_SHARED_BUFFERS:-6GB}"
+      - "-c"
+      - "effective_cache_size=${INSTANT_PG_EFFECTIVE_CACHE_SIZE:-16GB}"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_preload_libraries=pg_hint_plan,pg_stat_statements"
+      - "-c"
+      - "log_min_duration_statement=500ms"
+      - "-c"
+      - "output_plugin_libraries=wal2json"
+      - "-c"
+      - "random_page_cost=1.1"
+      # Archiving is opt-in: an enabled archive_command without a working
+      # repository retains every WAL segment. Changing archive_mode needs a
+      # PostgreSQL restart.
+      - "-c"
+      - "archive_mode=${INSTANT_PG_ARCHIVE_MODE:-off}"
+      - "-c"
+      - "archive_command=pgbackrest --stanza=backendrelay archive-push %p"
+      - "-c"
+      - "archive_timeout=${INSTANT_PG_ARCHIVE_TIMEOUT:-60}"
+
+  www:
+    image: "${INSTANT_DASHBOARD_IMAGE:-backendrelay/dashboard:local}"
+    depends_on:
+      - server
+    # The launcher rewrites publicSelfHostedVariables.js under /app at startup,
+    # so the root filesystem stays writable.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${INSTANT_DASHBOARD_MEM_LIMIT:-512m}
+    cpus: ${INSTANT_DASHBOARD_CPUS:-1}
+    tmpfs:
+      - /tmp
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    environment:
+      - INSTANT_BACKEND_URL=${INSTANT_BACKEND_URL:-http://localhost:8888}
+      - NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN:-}
+
+  server:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    image: "${INSTANT_SERVER_IMAGE:-backendrelay/server:local}"
+    build:
+      context: ../server-rs
+      dockerfile: Dockerfile
+    # The process drains live transports before aborting; keep Docker from
+    # sending SIGKILL at its 10s default while clients reconnect elsewhere.
+    stop_grace_period: 45s
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${INSTANT_SERVER_MEM_LIMIT:-8g}
+    cpus: ${INSTANT_SERVER_CPUS:-2}
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    environment:
+      WAL_HISTORY_STORAGE: pg
+      DATABASE_URL: "postgresql://${INSTANT_DB_USER:-instant}:${INSTANT_DB_PASSWORD:?set INSTANT_DB_PASSWORD to a strong URL-safe password}@postgres:5432/${POSTGRES_DB:-instant}?sslmode=disable"
+      CONNECTION_POOL_SIZE: ${CONNECTION_POOL_SIZE:-20}
+      INSTANT_BACKEND_URL: ${INSTANT_BACKEND_URL:-http://localhost:8888}
+      INSTANT_DASHBOARD_URL: ${INSTANT_DASHBOARD_URL:-http://localhost:3000}
+      INSTANT_SECURE_COOKIES: ${INSTANT_SECURE_COOKIES:-false}
+      INSTANT_TRUSTED_PROXY_CIDRS: ${INSTANT_TRUSTED_PROXY_CIDRS:-auto}
+      INSTANT_SUPERUSER_EMAIL: ${INSTANT_SUPERUSER_EMAIL:-}
+      INSTANT_DASHBOARD_ALLOWED_EMAILS: ${INSTANT_DASHBOARD_ALLOWED_EMAILS:-}
+      INSTANT_DASHBOARD_SIGNUP: ${INSTANT_DASHBOARD_SIGNUP:-}
+      INSTANT_DASHBOARD_PRIVATE: ${INSTANT_DASHBOARD_PRIVATE:-}
+      INSTANT_DASHBOARD_GATEWAY_TOKEN: ${INSTANT_DASHBOARD_GATEWAY_TOKEN:-}
+      INSTANT_EPHEMERAL_APPS: ${INSTANT_EPHEMERAL_APPS:-}
+      INSTANT_NIGHTLY_APP_BACKUPS: ${INSTANT_NIGHTLY_APP_BACKUPS:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
+      INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_ID: ${INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_ID:-}
+      INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_SECRET: ${INSTANT_DASHBOARD_GOOGLE_OAUTH_CLIENT_SECRET:-}
+      POSTMARK_TOKEN: ${POSTMARK_TOKEN:-}
+      POSTMARK_ACCOUNT_TOKEN: ${POSTMARK_ACCOUNT_TOKEN:-}
+      SENDGRID_TOKEN: ${SENDGRID_TOKEN:-}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      CLOUDFLARE_EMAIL_API_TOKEN: ${CLOUDFLARE_EMAIL_API_TOKEN:-}
+      INSTANT_TRANSACTIONAL_EMAIL_SENDER_EMAIL: ${INSTANT_TRANSACTIONAL_EMAIL_SENDER_EMAIL:-}
+      INSTANT_EMAIL_PROVIDER: ${INSTANT_EMAIL_PROVIDER:-}
+      INSTANT_DASHBOARD_EMAIL_SENDER_NAME: ${INSTANT_DASHBOARD_EMAIL_SENDER_NAME:-}
+      INSTANT_DASHBOARD_EMAIL_SENDER_EMAIL: ${INSTANT_DASHBOARD_EMAIL_SENDER_EMAIL:-}
+      INSTANT_APP_EMAIL_SENDER_NAME: ${INSTANT_APP_EMAIL_SENDER_NAME:-}
+      INSTANT_APP_EMAIL_SENDER_EMAIL: ${INSTANT_APP_EMAIL_SENDER_EMAIL:-}
+      INSTANT_TEAM_EMAIL_SENDER_NAME: ${INSTANT_TEAM_EMAIL_SENDER_NAME:-}
+      INSTANT_TEAM_EMAIL_SENDER_EMAIL: ${INSTANT_TEAM_EMAIL_SENDER_EMAIL:-}
+      INSTANT_S3_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:?set a bucket-scoped R2 access key}
+      INSTANT_S3_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:?set the R2 secret access key}
+      INSTANT_S3_REGION: auto
+      S3_ENDPOINT: https://${R2_ACCOUNT_ID:?set your Cloudflare account ID}.r2.cloudflarestorage.com
+      S3_PUBLIC_ENDPOINT: https://${R2_ACCOUNT_ID:?set your Cloudflare account ID}.r2.cloudflarestorage.com
+      S3_BUCKET: ${R2_FILES_BUCKET:-instantdb-files}
+      S3_APP_BACKUPS_BUCKET: ${R2_BACKUPS_BUCKET:-instantdb-backups}
+    volumes:
+      - server_secrets:/home/instant/config
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - www
+      - server
+    logging:
+      driver: local
+      options:
+        max-size: "50m"
+        max-file: "5"
+    environment:
+      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:-localhost}
+      BACKEND_DOMAIN: ${BACKEND_DOMAIN:-api.localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  backend-db:
+  pgbackrest-spool:
+  caddy_data:
+  caddy_config:
+  server_secrets:

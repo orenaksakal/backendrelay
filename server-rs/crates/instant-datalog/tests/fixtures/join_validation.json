@@ -1,0 +1,120 @@
+[
+  {
+    "name": "rejects disconnected variable-only patterns",
+    "source": "server/test/instant/db/datalog_test.clj:121-130",
+    "patterns": [
+      {
+        "index": { "key": "ea" },
+        "components": [
+          { "kind": "variable", "value": "?a" },
+          { "kind": "variable", "value": "?b" },
+          { "kind": "variable", "value": "?c" }
+        ]
+      },
+      {
+        "index": { "key": "ea" },
+        "components": [
+          { "kind": "variable", "value": "?d" },
+          { "kind": "variable", "value": "?e" },
+          { "kind": "variable", "value": "?f" }
+        ]
+      }
+    ],
+    "valid": false,
+    "invalid_pattern_index": 0
+  },
+  {
+    "name": "accepts a direct connection to a constant",
+    "source": "server/src/instant/db/datalog.clj:406-451",
+    "patterns": [
+      {
+        "index": { "key": "eav" },
+        "components": [
+          { "kind": "variable", "value": "?e" },
+          { "kind": "variable", "value": "?a" },
+          { "kind": "constant", "value": "Jack" }
+        ]
+      },
+      {
+        "index": { "key": "ea" },
+        "components": [
+          { "kind": "variable", "value": "?e" },
+          { "kind": "variable", "value": "?b" },
+          { "kind": "variable", "value": "?v" }
+        ]
+      }
+    ],
+    "valid": true
+  },
+  {
+    "name": "accepts a transitive connection to a constant",
+    "source": "server/src/instant/db/datalog.clj:406-451",
+    "patterns": [
+      {
+        "index": { "key": "ea" },
+        "components": [
+          { "kind": "variable", "value": "?a" },
+          { "kind": "variable", "value": "?b" },
+          { "kind": "variable", "value": "?c" }
+        ]
+      },
+      {
+        "index": { "key": "ea" },
+        "components": [
+          { "kind": "variable", "value": "?c" },
+          { "kind": "variable", "value": "?d" },
+          { "kind": "variable", "value": "?e" }
+        ]
+      },
+      {
+        "index": { "key": "ea" },
+        "components": [
+          { "kind": "variable", "value": "?e" },
+          { "kind": "variable", "value": "?f" },
+          { "kind": "constant", "value": "anchor" }
+        ]
+      }
+    ],
+    "valid": true
+  },
+  {
+    "name": "accepts every branch in a constant-anchored component",
+    "source": "server/src/instant/db/datalog.clj:406-451",
+    "patterns": [
+      {
+        "index": { "key": "ea" },
+        "components": [
+          { "kind": "variable", "value": "?leaf" },
+          { "kind": "variable", "value": "?anchor" }
+        ]
+      },
+      {
+        "index": { "key": "ea" },
+        "components": [
+          { "kind": "variable", "value": "?leaf" }
+        ]
+      },
+      {
+        "index": { "key": "eav" },
+        "components": [
+          { "kind": "variable", "value": "?anchor" },
+          { "kind": "any" },
+          { "kind": "constant", "value": "bound" }
+        ]
+      }
+    ],
+    "valid": true
+  },
+  {
+    "name": "rejects an all-wildcard pattern",
+    "source": "server/src/instant/db/datalog.clj:446-450",
+    "patterns": [
+      {
+        "index": { "key": "ea" },
+        "components": []
+      }
+    ],
+    "valid": false,
+    "invalid_pattern_index": 0
+  }
+]

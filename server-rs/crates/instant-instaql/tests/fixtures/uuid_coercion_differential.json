@@ -1,0 +1,49 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/util/uuid.clj:10-20 requires 36 trimmed characters; server/src/instant/db/instaql.clj:357-390 and model/attr_pat.clj:166-187 apply that coercion to cursors and reference filters",
+  "cases": [
+    {
+      "name": "padded-reference-scalar-is-trimmed",
+      "kind": "compile-ok",
+      "query": {"users": {"$": {"where": {"bookshelves": "  aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa  "}}}}
+    },
+    {
+      "name": "padded-reference-set-is-trimmed",
+      "kind": "compile-ok",
+      "query": {"users": {"$": {"where": {"bookshelves": {"$in": ["\taaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"]}}}}}
+    },
+    {
+      "name": "padded-reference-negation-is-trimmed",
+      "kind": "compile-ok",
+      "query": {"users": {"$": {"where": {"bookshelves": {"$not": " aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa "}}}}}
+    },
+    {
+      "name": "compact-reference-uuid-is-not-publicly-coerced",
+      "kind": "compile-error",
+      "query": {"users": {"$": {"where": {"bookshelves": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}}
+    },
+    {
+      "name": "padded-normal-cursor-uuids-are-trimmed",
+      "kind": "normal-cursor",
+      "query": {"users": {"$": {"after": [" aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa ", " 11111111-1111-1111-1111-111111111111 ", null, 10]}}},
+      "expected_entity": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "expected_attribute": "11111111-1111-1111-1111-111111111111"
+    },
+    {
+      "name": "compact-normal-cursor-entity-is-rejected",
+      "kind": "compile-error",
+      "query": {"users": {"$": {"after": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "11111111-1111-1111-1111-111111111111", null, 10]}}}
+    },
+    {
+      "name": "compact-cursor-attribute-is-rejected",
+      "kind": "compile-error",
+      "query": {"users": {"$": {"after": ["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "11111111111111111111111111111111", null, 10]}}}
+    },
+    {
+      "name": "padded-byop-cursor-uuid-values-are-normalized",
+      "kind": "byop-cursor",
+      "query": {"users": {"$": {"after": [" aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa ", " 11111111-1111-1111-1111-111111111111 ", "value"]}}},
+      "expected_entity": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "expected_attribute": "11111111-1111-1111-1111-111111111111"
+    }
+  ]
+}

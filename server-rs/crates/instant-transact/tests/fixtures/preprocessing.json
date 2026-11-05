@@ -1,0 +1,172 @@
+{
+  "source": "instantdb/instant@4e0a1bd8 server/test/instant/db/transaction_test.clj:3526-3572 and server/src/instant/db/transaction.clj:126-211",
+  "cases": [
+    {
+      "name": "root-not-collection",
+      "input": 1,
+      "path": [],
+      "message": "coll?"
+    },
+    {
+      "name": "step-not-collection",
+      "input": [1],
+      "path": [0],
+      "message": "coll?"
+    },
+    {
+      "name": "short-add-triple",
+      "input": [["add-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "22222222-2222-2222-2222-222222222222"]],
+      "path": [0],
+      "message": ":instant.db.model.triple/value"
+    },
+    {
+      "name": "missing-add-attribute-map",
+      "input": [["add-attr"]],
+      "path": [0, 1],
+      "message": "instant.db.model.attr/value-type"
+    },
+    {
+      "name": "null-add-attribute-id",
+      "input": [["add-attr", {
+        "id": null,
+        "forward-identity": ["aaaaaaaa-2222-2222-2222-222222222222", "users", "name"],
+        "value-type": "blob",
+        "cardinality": "one",
+        "unique?": false,
+        "index?": false
+      }]],
+      "path": [0, 1, "id"],
+      "message": "uuid?"
+    },
+    {
+      "name": "short-forward-identity-selects-label-predicate",
+      "input": [["add-attr", {
+        "id": "aaaaaaaa-1111-1111-1111-111111111111",
+        "forward-identity": ["aaaaaaaa-2222-2222-2222-222222222222", "users"],
+        "value-type": "blob",
+        "cardinality": "one",
+        "unique?": false,
+        "index?": false
+      }]],
+      "path": [0, 1, "forward-identity"],
+      "message": ":instant.db.model.attr/label"
+    },
+    {
+      "name": "non-uuid-entity",
+      "input": [["add-triple", "eid-not-uuid", "22222222-2222-2222-2222-222222222222", "value"]],
+      "path": [0, 1],
+      "message": "Invalid entity ID 'eid-not-uuid'. Entity IDs must be UUIDs. Use id() or lookup() to generate a valid UUID."
+    },
+    {
+      "name": "id-lookup-needs-uuid",
+      "input": [["add-triple", ["11111111-1111-1111-1111-111111111111", "not-a-uuid"], "22222222-2222-2222-2222-222222222222", "value"]],
+      "path": [0, 1],
+      "message": "Invalid lookup '[#uuid \"11111111-1111-1111-1111-111111111111\" \"not-a-uuid\"]'. The lookup attribute is 'users.id', but the lookup value is not a valid UUID."
+    },
+    {
+      "name": "value-lookup-namespace-mismatch",
+      "input": [["add-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "44444444-4444-4444-4444-444444444444", ["88888888-8888-8888-8888-888888888888", "The Character of Physical Law"]]],
+      "path": [0, 3],
+      "message": "Invalid transaction. The namespace in the lookup attribute is different from the namespace of the attribute that is being set"
+    },
+    {
+      "name": "blob-value-id-lookup-needs-uuid",
+      "input": [["add-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "22222222-2222-2222-2222-222222222222", ["11111111-1111-1111-1111-111111111111", "not-a-uuid"]]],
+      "path": [0, 3],
+      "message": "Invalid lookup '[#uuid \"11111111-1111-1111-1111-111111111111\" \"not-a-uuid\"]'. The lookup attribute is 'users.id', but the lookup value is not a valid UUID."
+    },
+    {
+      "name": "invalid-mode",
+      "input": [["add-triple", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "22222222-2222-2222-2222-222222222222", "value", {"mode": "replace"}]],
+      "path": [0, 4, "mode"],
+      "message": "#{:create :update :upsert}"
+    },
+    {
+      "name": "unknown-object-field",
+      "input": [{"id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "etype": "users", "missing": true}],
+      "path": [0, "missing"],
+      "message": "unknown attribute `users.missing`"
+    },
+    {
+      "name": "blank-forward-entity-type",
+      "input": [["add-attr", {
+        "id": "aaaaaaaa-1111-1111-1111-111111111111",
+        "forward-identity": ["aaaaaaaa-2222-2222-2222-222222222222", " \t ", "name"],
+        "value-type": "blob",
+        "cardinality": "one",
+        "unique?": false,
+        "index?": false
+      }]],
+      "path": [0, 1, "forward-identity", 1],
+      "message": "(complement clojure.string/blank?)"
+    },
+    {
+      "name": "blank-forward-label-on-update",
+      "input": [["update-attr", {
+        "id": "22222222-2222-2222-2222-222222222222",
+        "forward-identity": ["aaaaaaaa-3333-3333-3333-333333333333", "users", "  "]
+      }]],
+      "path": [0, 1, "forward-identity", 2],
+      "message": "(complement clojure.string/blank?)"
+    },
+    {
+      "name": "blank-reverse-entity-type",
+      "input": [["add-attr", {
+        "id": "aaaaaaaa-4444-4444-4444-444444444444",
+        "forward-identity": ["aaaaaaaa-5555-5555-5555-555555555555", "posts", "author"],
+        "reverse-identity": ["aaaaaaaa-6666-6666-6666-666666666666", "\n", "posts"],
+        "value-type": "ref",
+        "cardinality": "one",
+        "unique?": false,
+        "index?": false
+      }]],
+      "path": [0, 1, "reverse-identity", 1],
+      "message": "(complement clojure.string/blank?)"
+    },
+    {
+      "name": "blank-reverse-label-on-update",
+      "input": [["update-attr", {
+        "id": "44444444-4444-4444-4444-444444444444",
+        "reverse-identity": ["aaaaaaaa-7777-7777-7777-777777777777", "bookshelves", "\r\n"]
+      }]],
+      "path": [0, 1, "reverse-identity", 2],
+      "message": "(complement clojure.string/blank?)"
+    },
+    {
+      "name": "null-required-value-type-is-invalid-not-missing",
+      "input": [["add-attr", {
+        "id": "aaaaaaaa-8888-8888-8888-888888888888",
+        "forward-identity": ["aaaaaaaa-9999-9999-9999-999999999999", "users", "nickname"],
+        "value-type": null,
+        "cardinality": "one",
+        "unique?": false,
+        "index?": false
+      }]],
+      "path": [0, 1],
+      "message": "instant.db.model.attr/value-type"
+    },
+    {
+      "name": "null-checked-data-type-is-invalid",
+      "input": [["add-attr", {
+        "id": "aaaaaaaa-aaaa-8888-8888-888888888888",
+        "forward-identity": ["aaaaaaaa-aaaa-9999-9999-999999999999", "users", "score"],
+        "value-type": "blob",
+        "cardinality": "one",
+        "unique?": false,
+        "index?": false,
+        "checked-data-type": null
+      }]],
+      "path": [0, 1, "checked-data-type"],
+      "message": "instant.db.model.attr/checked-data-types"
+    },
+    {
+      "name": "null-update-cardinality-is-invalid",
+      "input": [["update-attr", {
+        "id": "22222222-2222-2222-2222-222222222222",
+        "cardinality": null
+      }]],
+      "path": [0, 1, "cardinality"],
+      "message": "#{:one :many}"
+    }
+  ]
+}

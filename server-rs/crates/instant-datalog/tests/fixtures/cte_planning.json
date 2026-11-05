@@ -1,0 +1,289 @@
+[
+  {
+    "name": "first match CTE projects the canonical five columns",
+    "source": "server/src/instant/db/datalog.clj:552-571,783-842,2002-2065",
+    "pattern_index": 0,
+    "start_of_group": true,
+    "pattern": {
+      "index": { "key": "ea" },
+      "components": [
+        {
+          "kind": "constant",
+          "value": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+        },
+        {
+          "kind": "constant",
+          "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        }
+      ]
+    },
+    "expected_index": "ea",
+    "expected": [
+      ":match-0",
+      {
+        ":select": [
+          [":entity-id", ":match-0-entity-id"],
+          [":attr-id", ":match-0-attr-id"],
+          [":value", ":match-0-value"],
+          [":eav", ":match-0-is-ref-val"],
+          [":created-at", ":match-0-created-at"]
+        ],
+        ":from": [[":triples", ":t0"]],
+        ":where": [
+          ":and",
+          [":=", ":app-id", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"],
+          [":=", ":ea", true],
+          [":=", ":attr-id", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"],
+          [
+            ":=",
+            ":entity-id",
+            [":cast", "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", ":uuid"]
+          ]
+        ]
+      },
+      ":materialized"
+    ]
+  },
+  {
+    "name": "later CTE carries previous rows and joins shared symbols",
+    "source": "server/src/instant/db/datalog.clj:2002-2065",
+    "pattern_index": 1,
+    "start_of_group": false,
+    "prior_patterns": [
+      {
+        "pattern_index": 0,
+        "pattern": {
+          "index": { "key": "ea" },
+          "components": [{ "kind": "variable", "value": "?e" }]
+        }
+      }
+    ],
+    "pattern": {
+      "index": { "key": "ea" },
+      "components": [
+        { "kind": "variable", "value": "?e" },
+        {
+          "kind": "constant",
+          "value": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+        }
+      ]
+    },
+    "expected_index": "ea",
+    "expected": [
+      ":match-1",
+      {
+        ":select": [
+          ":match-0.*",
+          [":entity-id", ":match-1-entity-id"],
+          [":attr-id", ":match-1-attr-id"],
+          [":value", ":match-1-value"],
+          [":eav", ":match-1-is-ref-val"],
+          [":created-at", ":match-1-created-at"]
+        ],
+        ":from": [[":triples", ":t1"], ":match-0"],
+        ":where": [
+          ":and",
+          [":=", ":app-id", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"],
+          [":=", ":ea", true],
+          [":=", ":attr-id", "cccccccc-cccc-cccc-cccc-cccccccccccc"],
+          [":=", ":entity-id", ":match-0-entity-id"]
+        ]
+      },
+      ":materialized"
+    ]
+  },
+  {
+    "name": "AV joins patch the current value for the expression index",
+    "source": "server/src/instant/db/datalog.clj:770-781,2002-2037",
+    "pattern_index": 1,
+    "start_of_group": false,
+    "prior_patterns": [
+      {
+        "pattern_index": 0,
+        "pattern": {
+          "index": { "key": "eav" },
+          "components": [
+            { "kind": "any" },
+            { "kind": "any" },
+            { "kind": "variable", "value": "?v" }
+          ]
+        }
+      }
+    ],
+    "pattern": {
+      "index": { "key": "av" },
+      "components": [
+        { "kind": "any" },
+        {
+          "kind": "constant",
+          "value": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+        },
+        { "kind": "variable", "value": "?v" }
+      ]
+    },
+    "expected_index": "av",
+    "expected": [
+      ":match-1",
+      {
+        ":select": [
+          ":match-0.*",
+          [":entity-id", ":match-1-entity-id"],
+          [":attr-id", ":match-1-attr-id"],
+          [":value", ":match-1-value"],
+          [":eav", ":match-1-is-ref-val"],
+          [":created-at", ":match-1-created-at"]
+        ],
+        ":from": [[":triples", ":t1"], ":match-0"],
+        ":where": [
+          ":and",
+          [":=", ":app-id", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"],
+          [":=", ":av", true],
+          [":=", ":attr-id", "cccccccc-cccc-cccc-cccc-cccccccccccc"],
+          [
+            ":=",
+            [":json_null_to_null", ":value"],
+            ":match-0-value"
+          ]
+        ]
+      },
+      ":materialized"
+    ]
+  },
+  {
+    "name": "entity-side VAE joins are rewritten to EAV",
+    "source": "server/src/instant/db/datalog.clj:1926-1961,2008",
+    "pattern_index": 1,
+    "start_of_group": false,
+    "prior_patterns": [
+      {
+        "pattern_index": 0,
+        "pattern": {
+          "index": { "key": "ea" },
+          "components": [{ "kind": "variable", "value": "?e" }]
+        }
+      }
+    ],
+    "pattern": {
+      "index": { "key": "vae" },
+      "components": [
+        { "kind": "variable", "value": "?e" },
+        {
+          "kind": "constant",
+          "value": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+        }
+      ]
+    },
+    "options": { "page_info": true, "has_best_index": true },
+    "expected_index": "eav",
+    "expected": [
+      ":match-1",
+      {
+        ":select": [
+          ":match-0.*",
+          [":entity-id", ":match-1-entity-id"],
+          [":attr-id", ":match-1-attr-id"],
+          [":value", ":match-1-value"],
+          [":eav", ":match-1-is-ref-val"],
+          [":created-at", ":match-1-created-at"]
+        ],
+        ":from": [[":triples", ":t1"], ":match-0"],
+        ":where": [
+          ":and",
+          [":=", ":app-id", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"],
+          [":=", ":eav", true],
+          [":=", ":attr-id", "cccccccc-cccc-cccc-cccc-cccccccccccc"],
+          [":=", ":entity-id", ":match-0-entity-id"]
+        ]
+      },
+      ":not-materialized"
+    ]
+  },
+  {
+    "name": "nested groups join and select from their parent CTE",
+    "source": "server/src/instant/db/datalog.clj:2002-2037",
+    "pattern_index": 2,
+    "start_of_group": true,
+    "additional_joins": {
+      "?e": {
+        "pattern_index": 9,
+        "triple_index": 0,
+        "component": "entity",
+        "reference_value": false
+      }
+    },
+    "pattern": {
+      "index": { "key": "ea" },
+      "components": [
+        { "kind": "variable", "value": "?e" },
+        {
+          "kind": "constant",
+          "value": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+        }
+      ]
+    },
+    "options": { "page_info": true, "has_best_index": true },
+    "expected_index": "ea",
+    "expected": [
+      ":match-2",
+      {
+        ":select": [
+          [":entity-id", ":match-2-entity-id"],
+          [":attr-id", ":match-2-attr-id"],
+          [":value", ":match-2-value"],
+          [":eav", ":match-2-is-ref-val"],
+          [":created-at", ":match-2-created-at"]
+        ],
+        ":from": [[":triples", ":t2"], ":match-9"],
+        ":where": [
+          ":and",
+          [":=", ":app-id", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"],
+          [":=", ":ea", true],
+          [":=", ":attr-id", "cccccccc-cccc-cccc-cccc-cccccccccccc"],
+          [":=", ":entity-id", ":match-9-entity-id"]
+        ]
+      },
+      ":not-materialized"
+    ]
+  },
+  {
+    "name": "attribute-only plans can omit a redundant index guard",
+    "source": "server/src/instant/db/datalog.clj:783-842",
+    "pattern_index": 0,
+    "start_of_group": true,
+    "pattern": {
+      "index": { "key": "ea" },
+      "components": [
+        { "kind": "any" },
+        {
+          "kind": "constant",
+          "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        }
+      ]
+    },
+    "options": {
+      "page_info": true,
+      "has_best_index": true,
+      "remove_unnecessary_index": true
+    },
+    "expected_index": "ea",
+    "expected": [
+      ":match-0",
+      {
+        ":select": [
+          [":entity-id", ":match-0-entity-id"],
+          [":attr-id", ":match-0-attr-id"],
+          [":value", ":match-0-value"],
+          [":eav", ":match-0-is-ref-val"],
+          [":created-at", ":match-0-created-at"]
+        ],
+        ":from": [[":triples", ":t0"]],
+        ":where": [
+          ":and",
+          [":=", ":app-id", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"],
+          [":=", ":attr-id", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"]
+        ]
+      },
+      ":not-materialized"
+    ]
+  }
+]

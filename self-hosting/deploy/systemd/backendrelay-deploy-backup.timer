@@ -1,0 +1,12 @@
+[Unit]
+Description=BackendRelay twice-daily off-host backup (deploy kit)
+Documentation=file:///opt/backendrelay/self-hosting/deploy/README.md
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00 UTC
+RandomizedDelaySec=5min
+Persistent=true
+Unit=backendrelay-deploy-backup.service
+
+[Install]
+WantedBy=timers.target

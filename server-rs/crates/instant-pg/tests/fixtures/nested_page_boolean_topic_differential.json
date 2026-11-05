@@ -1,0 +1,110 @@
+{
+  "oracle": "4e0a1bd8 server/test/instant/db/instaql_test.clj:3430-3490,3600-3672 and server/src/instant/db/datalog.clj:2320-2555,2841-3034: boolean root filters retain relationship dependencies while independently ordered nested children are regrouped per parent; page cursors, result order, and precise topics come from the page pattern metadata",
+  "app_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "cases": [
+    {
+      "name": "or-roots-and-ascending-children",
+      "query": {
+        "users": {
+          "$": {
+            "fields": ["handle"],
+            "where": {"or": [{"handle": "alex"}, {"handle": "nicolegf"}]},
+            "order": {"handle": "desc"}
+          },
+          "bookshelves": {
+            "$": {"fields": ["name", "order"], "order": {"order": "asc"}}
+          }
+        }
+      },
+      "root_order": "desc",
+      "child_order": "asc",
+      "users": [
+        {
+          "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2",
+          "handle": "nicolegf",
+          "age": 31,
+          "created_at": 200,
+          "shelves": [
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc7", "name": "Seven", "order": 7, "created_at": 370},
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc3", "name": "Three", "order": 3, "created_at": 330}
+          ]
+        },
+        {
+          "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+          "handle": "alex",
+          "age": 42,
+          "created_at": 100,
+          "shelves": [
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc1", "name": "One", "order": 1, "created_at": 310},
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc0", "name": "Zero", "order": 0, "created_at": 300}
+          ]
+        }
+      ],
+      "expected_topic_attributes": [
+        "11111111-1111-1111-1111-111111111111",
+        "22222222-2222-2222-2222-222222222222",
+        "44444444-4444-4444-4444-444444444444",
+        "55555555-5555-5555-5555-555555555555",
+        "aaaaaaaa-1111-1111-1111-111111111111",
+        "aaaaaaaa-2222-2222-2222-222222222222"
+      ],
+      "expected": {
+        "users": [
+          {"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2", "handle": "nicolegf", "bookshelves": [
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc3", "name": "Three", "order": 3},
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc7", "name": "Seven", "order": 7}
+          ]},
+          {"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1", "handle": "alex", "bookshelves": [
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc0", "name": "Zero", "order": 0},
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc1", "name": "One", "order": 1}
+          ]}
+        ]
+      }
+    },
+    {
+      "name": "and-through-relationship-and-descending-children",
+      "query": {
+        "users": {
+          "$": {
+            "fields": ["handle", "age"],
+            "where": {"and": [{"handle": "stopa"}, {"bookshelves.order": 0}, {"age": 42}]}
+          },
+          "bookshelves": {
+            "$": {"fields": ["name", "order"], "order": {"order": "desc"}}
+          }
+        }
+      },
+      "root_order": null,
+      "child_order": "desc",
+      "users": [
+        {
+          "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3",
+          "handle": "stopa",
+          "age": 42,
+          "created_at": 400,
+          "shelves": [
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc0", "name": "Zero", "order": 0, "created_at": 400},
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc5", "name": "Five", "order": 5, "created_at": 450}
+          ]
+        }
+      ],
+      "expected_topic_attributes": [
+        "11111111-1111-1111-1111-111111111111",
+        "22222222-2222-2222-2222-222222222222",
+        "33333333-3333-3333-3333-333333333333",
+        "44444444-4444-4444-4444-444444444444",
+        "55555555-5555-5555-5555-555555555555",
+        "aaaaaaaa-1111-1111-1111-111111111111",
+        "aaaaaaaa-2222-2222-2222-222222222222"
+      ],
+      "expected": {
+        "users": [
+          {"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3", "handle": "stopa", "age": 42, "bookshelves": [
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc5", "name": "Five", "order": 5},
+            {"id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc0", "name": "Zero", "order": 0}
+          ]}
+        ]
+      }
+    }
+  ]
+}

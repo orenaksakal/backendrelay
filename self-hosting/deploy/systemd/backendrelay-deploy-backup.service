@@ -1,0 +1,19 @@
+[Unit]
+Description=BackendRelay encrypted off-host backup (deploy kit)
+Documentation=file:///opt/backendrelay/self-hosting/deploy/README.md
+After=docker.service
+Requires=docker.service
+# The deploy kit installs this unit; do not also install
+# monitoring/backendrelay-backup.service, or the backup runs twice.
+
+[Service]
+Type=oneshot
+UMask=0077
+# recovery.py no longer stops writers, so this keeps the legacy cleanup for a
+# backup interrupted by an older tool version. The configuration path is the
+# one deploy.sh uses for its pre-deploy backup.
+ExecStart=/usr/bin/python3 /opt/backendrelay/self-hosting/recovery.py backup --config /etc/backendrelay/backup.json
+ExecStopPost=-/usr/bin/python3 /opt/backendrelay/self-hosting/recovery.py resume-writers --config /etc/backendrelay/backup.json
+TimeoutStartSec=55min
+TimeoutStopSec=5min
+KillMode=control-group

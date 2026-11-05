@@ -1,0 +1,45 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/core.clj:89-96 and server/src/instant/reactive/session.clj:1245-1248 use ring-json 0.5.0 / Cheshire 6.0.0; Cheshire tag 6.0.0 src/cheshire/parse.clj:17-32 realizes objects from transient {}, so operator maps traverse PersistentHashMap keyword-HAMT order rather than wire order. server/src/instant/db/instaql.clj:39-88,241-311,654-842 normalizes $ne to $not, validates every retained entry, and lowers the first conformed map entry",
+  "cases": [
+    {
+      "name": "first-comparator-entry-wins",
+      "query": {"users": {"$": {"where": {"age": {"$gt": 10, "$lt": 20}}}}},
+      "expected_kind": "gt",
+      "expected_value": 10,
+      "missing_inclusive": false
+    },
+    {
+      "name": "keyword-hamt-order-not-reversed-wire-order-selects-comparator",
+      "query": {"users": {"$": {"where": {"age": {"$lt": 20, "$gt": 10}}}}},
+      "expected_kind": "gt",
+      "expected_value": 10,
+      "missing_inclusive": false
+    },
+    {
+      "name": "dollar-in-precedes-legacy-in",
+      "query": {"users": {"$": {"where": {"handle": {"$in": ["dollar"], "in": ["legacy"]}}}}},
+      "expected_kind": "in",
+      "expected_value": "dollar",
+      "missing_inclusive": false
+    },
+    {
+      "name": "ne-overwrites-simultaneous-not",
+      "query": {"users": {"$": {"where": {"handle": {"$ne": "from-ne", "$not": "from-not"}}}}},
+      "expected_kind": "not",
+      "expected_value": "from-ne",
+      "missing_inclusive": false
+    },
+    {
+      "name": "hash-map-order-selects-not-before-in",
+      "query": {"users": {"$": {"where": {"bookshelves.name": {"$in": ["Fiction"], "$not": "Other"}}}}},
+      "expected_kind": "not",
+      "expected_value": "Other",
+      "missing_inclusive": false
+    },
+    {
+      "name": "non-selected-invalid-operator-value-still-fails-spec",
+      "query": {"users": {"$": {"where": {"age": {"$gt": 10, "$lt": {"bad": true}}}}}},
+      "expected_error": "boolean?"
+    }
+  ]
+}

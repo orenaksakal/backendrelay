@@ -1,0 +1,125 @@
+{
+  "catalog": {
+    "attributes": [
+      {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "etype": "users",
+        "label": "id",
+        "value_type": "blob",
+        "cardinality": "one",
+        "unique": true,
+        "indexed": true,
+        "required": true,
+        "checked_data_type": null,
+        "indexing": false,
+        "checking_data_type": false,
+        "reverse_etype": null,
+        "reverse_label": null
+      },
+      {
+        "id": "22222222-2222-2222-2222-222222222222",
+        "etype": "users",
+        "label": "handle",
+        "value_type": "blob",
+        "cardinality": "one",
+        "unique": true,
+        "indexed": true,
+        "required": false,
+        "checked_data_type": "string",
+        "indexing": false,
+        "checking_data_type": false,
+        "reverse_etype": null,
+        "reverse_label": null
+      },
+      {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "etype": "users",
+        "label": "unchecked",
+        "value_type": "blob",
+        "cardinality": "one",
+        "unique": false,
+        "indexed": false,
+        "required": false,
+        "checked_data_type": null,
+        "indexing": false,
+        "checking_data_type": false,
+        "reverse_etype": null,
+        "reverse_label": null
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "default-created-at-page",
+      "admin": false,
+      "query": {"users": {"$": {"limit": 2, "offset": 1}}},
+      "expected": {
+        "kind": "success",
+        "limit": 2,
+        "offset": 1,
+        "order_attr": "11111111-1111-1111-1111-111111111111",
+        "order_type": "created-at",
+        "aggregate": null
+      }
+    },
+    {
+      "name": "checked-last-page",
+      "admin": false,
+      "query": {"users": {"$": {"last": 3, "order": {"handle": "desc"}}}},
+      "expected": {
+        "kind": "success",
+        "limit": 3,
+        "offset": null,
+        "order_attr": "22222222-2222-2222-2222-222222222222",
+        "order_type": "string",
+        "aggregate": null
+      }
+    },
+    {
+      "name": "admin-count",
+      "admin": true,
+      "query": {"users": {"$": {"aggregate": "count"}}},
+      "expected": {
+        "kind": "success",
+        "limit": null,
+        "offset": null,
+        "order_attr": null,
+        "order_type": null,
+        "aggregate": "count"
+      }
+    },
+    {
+      "name": "mutually-exclusive-limits",
+      "admin": false,
+      "query": {"users": {"$": {"first": 1, "last": 1}}},
+      "expected": {
+        "kind": "error",
+        "expected": "supported-options?",
+        "path": ["users", "$"],
+        "message_contains": "Only provide one"
+      }
+    },
+    {
+      "name": "unchecked-order",
+      "admin": false,
+      "query": {"users": {"$": {"order": {"unchecked": "asc"}}}},
+      "expected": {
+        "kind": "error",
+        "expected": "supported-order?",
+        "path": ["users", "$", "order"],
+        "message_contains": "is not indexed"
+      }
+    },
+    {
+      "name": "non-admin-count",
+      "admin": false,
+      "query": {"users": {"$": {"aggregate": "count"}}},
+      "expected": {
+        "kind": "error",
+        "expected": "admin?",
+        "path": ["users", "$", "aggregate"],
+        "message_contains": "only available for admin"
+      }
+    }
+  ]
+}

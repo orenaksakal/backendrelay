@@ -1,0 +1,7 @@
+.next
+.turbo
+.output
+dist-site
+.astro
+_posts/**
+src/routeTree.gen.ts

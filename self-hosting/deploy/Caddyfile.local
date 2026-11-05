@@ -1,0 +1,70 @@
+# Local dry-run edge. It serves plain HTTP on *.localhost, so no origin
+# certificate or Cloudflare account is needed. Use it only with
+# docker-compose.dry-run.yml and DEPLOY_EXPECT_CLOUDFLARE=local.
+{
+	admin off
+	servers {
+		timeouts {
+			read_header 10s
+			idle 2m
+		}
+	}
+}
+
+(backend_body_limits) {
+	@restore path /dash/restores/zip
+	request_body @restore {
+		max_size {$CADDY_MAX_RESTORE_BODY:1100MB}
+	}
+
+	@uploads path /dash/apps/*/storage/upload /admin/storage/upload /storage/upload
+	request_body @uploads {
+		max_size {$CADDY_MAX_UPLOAD_BODY:110MB}
+	}
+
+	@management {
+		path /dash/* /admin/* /superadmin/*
+		not path /dash/restores/zip /dash/apps/*/storage/upload /admin/storage/upload
+	}
+	request_body @management {
+		max_size {$CADDY_MAX_MANAGEMENT_BODY:2MB}
+	}
+
+	@other {
+		not path /dash/* /admin/* /superadmin/* /storage/*
+	}
+	request_body @other {
+		max_size {$CADDY_MAX_REQUEST_BODY:8MB}
+	}
+}
+
+http://{$BACKEND_DOMAIN:api.localhost} {
+	import backend_body_limits
+	log {
+		output stdout
+		format json
+	}
+	reverse_proxy {$SERVER_UPSTREAMS} {
+		health_uri /health/system
+		health_interval 10s
+		health_timeout 5s
+		health_status 200
+		flush_interval -1
+		header_up X-Forwarded-For {client_ip}
+	}
+}
+
+http://{$DASHBOARD_DOMAIN:dash.localhost} {
+	encode zstd gzip
+	log {
+		output stdout
+		format json
+	}
+	reverse_proxy dashboard:8080 {
+		health_uri /healthz
+		health_interval 10s
+		health_timeout 5s
+		health_status 200
+		header_up X-Forwarded-For {client_ip}
+	}
+}

@@ -1,0 +1,25 @@
+{
+  "source": "server/test/instant/db/instaql_test.clj:4808-4930",
+  "cases": [
+    {
+      "name": "default-fields",
+      "query": {"$files": {}},
+      "expected_fetch": ["id", "path", "size", "content-type", "content-disposition", "location-id", "key-version", "url"]
+    },
+    {
+      "name": "url-only",
+      "query": {"$files": {"$": {"fields": ["url"]}}},
+      "expected_fetch": ["id", "url", "location-id"]
+    },
+    {
+      "name": "url-and-location",
+      "query": {"$files": {"$": {"fields": ["url", "location-id"]}}},
+      "expected_fetch": ["id", "url", "location-id"]
+    },
+    {
+      "name": "path-only",
+      "query": {"$files": {"$": {"fields": ["path"]}}},
+      "expected_fetch": ["id", "path"]
+    }
+  ]
+}

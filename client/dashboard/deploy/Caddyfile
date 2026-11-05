@@ -1,0 +1,52 @@
+# Caddy serves the static SPA build. `{$VAR}` is substituted when Caddy starts,
+# so runtime configuration changes need a container restart, never a rebuild.
+#
+# Runtime config (`/config.json`):
+#   BR_API_URL            required, the BackendRelay API origin
+#   BR_DASHBOARD_API_URL  optional, the gateway origin for /dash, /superadmin and
+#                         /platform/oauth
+#   BR_STORAGE_ORIGIN     optional, the public storage origin for file previews
+#
+# Security policy:
+#   BR_WS_ORIGIN          optional, the realtime WebSocket origin. Without it the
+#                         CSP blocks WebSocket connections and live data stays off.
+:8080 {
+	root * /srv
+	encode zstd gzip
+
+	# TanStack Start emits content-hashed files under /assets, so they never change.
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	@other not path /assets/*
+	header @other Cache-Control "no-cache"
+
+	handle /config.json {
+		header Content-Type application/json
+		header Cache-Control "no-store"
+		# Empty optional values are treated as unset by the app's zod schema.
+		respond `{"apiBaseUrl":"{$BR_API_URL}","dashboardApiUrl":"{$BR_DASHBOARD_API_URL}","storageOrigin":"{$BR_STORAGE_ORIGIN}"}` 200
+	}
+
+	# Container health probe; the compose healthcheck uses wget on this path.
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# The client SDK embeds the devtool in an iframe, so only that route may be framed.
+	handle /_devtool* {
+		header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; connect-src 'self' https://cloudflareinsights.com {$BR_API_URL} {$BR_WS_ORIGIN} {$BR_DASHBOARD_API_URL}; img-src 'self' data: blob: {$BR_STORAGE_ORIGIN}; font-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors *"
+		try_files {path} /_shell.html
+		file_server
+	}
+
+	handle {
+		# TanStack Start writes inline hydration and scroll-restoration scripts
+		# into the shell, so script-src must allow inline code. Cloudflare proxy
+		# injects its analytics beacon; allow that origin too. Fonts are inlined
+		# as data: URLs by the generated CSS.
+		header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; connect-src 'self' https://cloudflareinsights.com {$BR_API_URL} {$BR_WS_ORIGIN} {$BR_DASHBOARD_API_URL}; img-src 'self' data: blob: {$BR_STORAGE_ORIGIN}; font-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
+		# TanStack Start SPA mode prerenders /_shell.html; never fall back to index.html.
+		try_files {path} /_shell.html
+		file_server
+	}
+}

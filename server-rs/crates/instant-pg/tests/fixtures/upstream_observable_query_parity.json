@@ -1,0 +1,66 @@
+{
+  "oracle": "Source-adapted expected results from instantdb/instant@45d3ffbb server/test/instant/db/instaql_test.clj:1263-1343,3314-3424,4256-4312,4714-4756; shaping semantics from server/src/instant/util/instaql.clj:28-102, server/src/instant/util/uuid.clj:44-59, and server/src/instant/db/model/entity.clj:22-38. These are not JVM-captured production results.",
+  "fields_query": {
+    "users": {
+      "$": {"fields": ["handle"], "where": {"age": 42}},
+      "bookshelves": {"$": {"fields": ["order"], "where": {"name": "Nonfiction"}}}
+    }
+  },
+  "fields_expected": {
+    "users": [{
+      "id": "10000000-0000-4000-8000-000000000001",
+      "handle": "alex",
+      "bookshelves": [{
+        "id": "20000000-0000-4000-8000-000000000001",
+        "order": 1
+      }]
+    }]
+  },
+  "shared_id_query": {"books": {}, "authors": {}},
+  "shared_id_expected": {
+    "authors": [{"id": "30000000-0000-4000-8000-000000000001", "field": "author"}],
+    "books": [{"id": "30000000-0000-4000-8000-000000000001", "field": "book"}]
+  },
+  "order_cases": [
+    {
+      "name": "string-ascending-with-null-first-and-uuid-tie-break",
+      "query": {"items": {"$": {"fields": ["label"], "order": {"label": "asc"}}}},
+      "expected_ids": [
+        "40000000-0000-4000-8000-000000000004",
+        "40000000-0000-4000-8000-000000000001",
+        "40000000-0000-4000-8000-000000000002",
+        "40000000-0000-4000-8000-000000000003"
+      ]
+    },
+    {
+      "name": "number-descending-with-null-last",
+      "query": {"items": {"$": {"fields": ["score"], "order": {"score": "desc"}}}},
+      "expected_ids": [
+        "40000000-0000-4000-8000-000000000003",
+        "40000000-0000-4000-8000-000000000001",
+        "40000000-0000-4000-8000-000000000002",
+        "40000000-0000-4000-8000-000000000004"
+      ]
+    },
+    {
+      "name": "boolean-ascending",
+      "query": {"items": {"$": {"fields": ["active"], "order": {"active": "asc"}}}},
+      "expected_ids": [
+        "40000000-0000-4000-8000-000000000002",
+        "40000000-0000-4000-8000-000000000004",
+        "40000000-0000-4000-8000-000000000001",
+        "40000000-0000-4000-8000-000000000003"
+      ]
+    },
+    {
+      "name": "date-ascending-after-date-coercion",
+      "query": {"items": {"$": {"fields": ["when"], "order": {"when": "asc"}}}},
+      "expected_ids": [
+        "40000000-0000-4000-8000-000000000004",
+        "40000000-0000-4000-8000-000000000002",
+        "40000000-0000-4000-8000-000000000001",
+        "40000000-0000-4000-8000-000000000003"
+      ]
+    }
+  ]
+}

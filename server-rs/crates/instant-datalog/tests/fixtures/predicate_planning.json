@@ -1,0 +1,374 @@
+{
+  "constant_cases": [
+    {
+      "name": "empty attribute set is unsatisfiable",
+      "source": "server/src/instant/db/datalog.clj:665-668",
+      "index": { "key": "ea" },
+      "component": "attribute",
+      "values": [],
+      "expected": [":=", 0, 1]
+    },
+    {
+      "name": "multiple attributes use a typed UUID array",
+      "source": "server/src/instant/db/datalog.clj:665-668",
+      "index": { "key": "ea" },
+      "component": "attribute",
+      "values": [
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "cccccccc-cccc-cccc-cccc-cccccccccccc"
+      ],
+      "expected": [
+        ":=",
+        ":attr-id",
+        [
+          ":any",
+          {
+            "values": [
+              "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+              "cccccccc-cccc-cccc-cccc-cccccccccccc"
+            ],
+            "pgtype": "uuid[]"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "AV constants patch JSON nulls for the index",
+      "source": "server/src/instant/db/datalog.clj:625-650",
+      "index": { "key": "av" },
+      "component": "value",
+      "values": [null],
+      "expected": [
+        ":=",
+        [":json_null_to_null", ":value"],
+        [":cast", null, ":jsonb"]
+      ]
+    },
+    {
+      "name": "VAE UUID constants use the UUID expression index",
+      "source": "server/src/instant/db/datalog.clj:625-650",
+      "index": { "key": "vae" },
+      "component": "value",
+      "values": ["dddddddd-dddd-dddd-dddd-dddddddddddd"],
+      "expected": [
+        ":=",
+        [":json_uuid_to_uuid", ":value"],
+        [":cast", "dddddddd-dddd-dddd-dddd-dddddddddddd", ":uuid"]
+      ]
+    },
+    {
+      "name": "checked numbers preserve SQL null semantics",
+      "source": "server/src/instant/db/datalog.clj:582-608",
+      "index": { "key": "ave", "data_type": "number" },
+      "component": "value",
+      "values": [10, null],
+      "expected": [
+        ":and",
+        [
+          ":or",
+          [
+            ":=",
+            [":triples_extract_number_value", ":value"],
+            [":cast", 10, ":float8"]
+          ],
+          [":=", null, [":triples_extract_number_value", ":value"]]
+        ],
+        [
+          ":=",
+          ":checked_data_type",
+          [":cast", [":inline", "number"], ":checked_data_type"]
+        ]
+      ]
+    },
+    {
+      "name": "entity lookup refs use the AV index subquery",
+      "source": "server/src/instant/db/datalog.clj:652-664",
+      "index": { "key": "ea" },
+      "component": "entity",
+      "values": [
+        ["bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "email@example.com"]
+      ],
+      "expected_hint": {
+        "table_alias": "t0-lookup",
+        "index": "av_index"
+      },
+      "expected": [
+        ":or",
+        [
+          ":=",
+          ":entity-id",
+          {
+            ":select": [":t0-lookup.entity-id"],
+            ":from": [[":triples", ":t0-lookup"]],
+            ":where": [
+              ":and",
+              [":=", ":app-id", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"],
+              [
+                ":=",
+                [":json_null_to_null", ":value"],
+                [":cast", "email@example.com", ":jsonb"]
+              ],
+              [
+                ":=",
+                ":attr-id",
+                [":cast", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", ":uuid"]
+              ],
+              ":av"
+            ]
+          }
+        ]
+      ]
+    }
+  ],
+  "function_cases": [
+    {
+      "name": "AV negation patches JSON nulls for the index",
+      "source": "server/src/instant/db/datalog.clj:609-623,706-707",
+      "index": { "key": "av" },
+      "entity": { "kind": "any" },
+      "value": {
+        "kind": "function",
+        "value": { "function": "not", "argument": "blocked" }
+      },
+      "expected": [
+        [
+          ":not=",
+          [":json_null_to_null", ":value"],
+          [":cast", "blocked", ":jsonb"]
+        ]
+      ]
+    },
+    {
+      "name": "checked numeric comparator extracts and checks the type",
+      "source": "server/src/instant/db/datalog.clj:736-747",
+      "index": { "key": "ave", "data_type": "number" },
+      "entity": { "kind": "any" },
+      "value": {
+        "kind": "function",
+        "value": {
+          "function": "comparator",
+          "argument": {
+            "operation": "$gte",
+            "data_type": "number",
+            "value": 18
+          }
+        }
+      },
+      "expected": [
+        [
+          ":and",
+          [":>=", [":triples_extract_number_value", ":value"], 18],
+          [
+            ":=",
+            ":checked_data_type",
+            [":cast", [":inline", "number"], ":checked_data_type"]
+          ]
+        ]
+      ]
+    },
+    {
+      "name": "entity prefix creates inclusive UUID bounds",
+      "source": "server/src/instant/db/datalog.clj:685-696,748-753",
+      "index": { "key": "ea" },
+      "entity": { "kind": "any" },
+      "value": {
+        "kind": "function",
+        "value": {
+          "function": "entity-id-starts-with",
+          "argument": "12345678"
+        }
+      },
+      "expected": [
+        [
+          ":and",
+          [":>=", ":entity-id", "12345678-0000-0000-0000-000000000000"],
+          [":<=", ":entity-id", "12345678-ffff-ffff-ffff-ffffffffffff"]
+        ]
+      ]
+    },
+    {
+      "name": "entity negation compares UUIDs directly",
+      "source": "server/src/instant/db/datalog.clj:756-762",
+      "index": { "key": "ea" },
+      "entity": {
+        "kind": "function",
+        "value": {
+          "function": "not",
+          "argument": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+        }
+      },
+      "value": { "kind": "any" },
+      "expected": [
+        [
+          ":not=",
+          ":entity-id",
+          "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+        ]
+      ]
+    },
+    {
+      "name": "isNull uses a correlated NOT IN subquery",
+      "source": "server/src/instant/db/datalog.clj:708-735",
+      "index": { "key": "ea" },
+      "entity": { "kind": "any" },
+      "value": {
+        "kind": "function",
+        "value": {
+          "function": "is-null",
+          "argument": {
+            "attr_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            "nil": true,
+            "reference": false,
+            "reverse": false,
+            "indexed": false,
+            "indexed_checked_type": null
+          }
+        }
+      },
+      "expected": [
+        [
+          ":not-in",
+          ":entity-id",
+          {
+            ":select": [":t0-subquery.entity-id"],
+            ":from": [[":triples", ":t0-subquery"]],
+            ":where": [
+              ":and",
+              [
+                ":=",
+                ":t0-subquery.app-id",
+                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+              ],
+              [":=", ":t0-subquery.entity-id", ":t0.entity-id"],
+              [
+                ":=",
+                ":t0-subquery.attr-id",
+                "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+              ],
+              [
+                ":not=",
+                ":t0-subquery.value",
+                [":cast", null, ":jsonb"]
+              ]
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "name": "reverse checked isNull uses UUID projection and both indexes",
+      "source": "server/src/instant/db/datalog.clj:708-735",
+      "index": { "key": "vae" },
+      "entity": { "kind": "any" },
+      "value": {
+        "kind": "function",
+        "value": {
+          "function": "is-null",
+          "argument": {
+            "attr_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+            "nil": false,
+            "reference": true,
+            "reverse": true,
+            "indexed": true,
+            "indexed_checked_type": "number"
+          }
+        }
+      },
+      "expected": [
+        [
+          ":in",
+          ":entity-id",
+          {
+            ":select": [
+              [":json_uuid_to_uuid", ":t0-subquery.value"]
+            ],
+            ":from": [[":triples", ":t0-subquery"]],
+            ":where": [
+              ":and",
+              [
+                ":=",
+                ":t0-subquery.app-id",
+                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+              ],
+              [
+                ":=",
+                [":json_uuid_to_uuid", ":t0-subquery.value"],
+                ":t0.entity-id"
+              ],
+              [
+                ":=",
+                ":t0-subquery.attr-id",
+                "cccccccc-cccc-cccc-cccc-cccccccccccc"
+              ],
+              ":t0-subquery.eav",
+              ":t0-subquery.ave",
+              [
+                ":and",
+                [
+                  ":not=",
+                  [":triples_extract_number_value", ":t0-subquery.value"],
+                  null
+                ],
+                [
+                  ":=",
+                  ":checked_data_type",
+                  [":cast", [":inline", "number"], ":checked_data_type"]
+                ]
+              ]
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "name": "legacy isNull correlation keeps the outer entity unqualified",
+      "source": "server/src/instant/db/datalog.clj:717-724",
+      "index": { "key": "ea" },
+      "entity": { "kind": "any" },
+      "value": {
+        "kind": "function",
+        "value": {
+          "function": "is-null",
+          "argument": {
+            "attr_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            "nil": false,
+            "reference": false,
+            "reverse": false,
+            "indexed": false,
+            "indexed_checked_type": null
+          }
+        }
+      },
+      "options": { "disable_is_null_fix": true },
+      "expected": [
+        [
+          ":in",
+          ":entity-id",
+          {
+            ":select": [":t0-subquery.entity-id"],
+            ":from": [[":triples", ":t0-subquery"]],
+            ":where": [
+              ":and",
+              [
+                ":=",
+                ":t0-subquery.app-id",
+                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+              ],
+              [":=", ":t0-subquery.entity-id", ":entity-id"],
+              [
+                ":=",
+                ":t0-subquery.attr-id",
+                "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+              ],
+              [
+                ":not=",
+                ":t0-subquery.value",
+                [":cast", null, ":jsonb"]
+              ]
+            ]
+          }
+        ]
+      ]
+    }
+  ]
+}

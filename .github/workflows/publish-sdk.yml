@@ -1,0 +1,85 @@
+name: Publish SDK
+
+# An sdk-v* tag publishes every kept client package to npm under the
+# @backendrelay scope. The tag must match the shared version in
+# client/packages/version/src/version.ts, so sdk-v1.1.0 publishes 1.1.0.
+# docs/sdk-publishing.md documents the token, the first publish and the
+# Verdaccio rehearsal; `make publish-dry-run` shows the tarballs without
+# uploading them.
+on:
+  push:
+    tags: ['sdk-v*']
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Pack the packages without uploading them
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  # npm provenance signs the publish with the workflow's OIDC identity.
+  id-token: write
+
+concurrency:
+  group: publish-sdk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish
+    runs-on: [self-hosted, linux, x64, backendrelay]
+    timeout-minutes: 60
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          clean: true
+          persist-credentials: false
+      - name: Check the npm token
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$NODE_AUTH_TOKEN" || {
+            echo 'NPM_TOKEN repository secret is not set' >&2
+            exit 1
+          }
+      - name: Configure the npm registry
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          config="$RUNNER_TEMP/npmrc"
+          # The literal ${NODE_AUTH_TOKEN} is expanded by npm, not by the shell,
+          # so the token never reaches the workflow log.
+          printf '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n' > "$config"
+          echo "NPM_CONFIG_USERCONFIG=$config" >> "$GITHUB_ENV"
+      - name: Install dependencies
+        working-directory: client
+        run: mise exec node@24 pnpm@10.34.9 -- pnpm install --frozen-lockfile
+      - name: Publish
+        working-directory: client
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            pattern="s/^const version = '\(v.*\)';$/\1/p"
+            version="$(sed -n "$pattern" packages/version/src/version.ts)"
+            test -n "$version" || {
+              echo 'could not read the SDK version from version.ts' >&2
+              exit 1
+            }
+            test "$GITHUB_REF_NAME" = "sdk-$version" || {
+              echo "tag $GITHUB_REF_NAME does not match $version" >&2
+              exit 1
+            }
+          fi
+          if [ "${DRY_RUN:-false}" = true ]; then
+            mise exec node@24 pnpm@10.34.9 -- make publish-dry-run
+          else
+            mise exec node@24 pnpm@10.34.9 -- make publish
+          fi

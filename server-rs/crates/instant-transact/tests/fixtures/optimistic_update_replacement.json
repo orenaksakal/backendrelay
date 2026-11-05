@@ -1,0 +1,86 @@
+{
+  "source": "instantdb/instant@4e0a1bd8 server/src/instant/db/transaction.clj:641-708; optimistic-attrs applies assoc! to the complete request before expand-maps, so update maps replace prior catalog records rather than merging them",
+  "rejected": [
+    {
+      "name": "renamed-identity-shadows-the-old-name-before-and-after-the-update-step",
+      "input": [
+        {
+          "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "etype": "users",
+          "bookshelves": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        },
+        [
+          "update-attr",
+          {
+            "id": "44444444-4444-4444-4444-444444444444",
+            "forward-identity": ["cccccccc-cccc-cccc-cccc-cccccccccccc", "users", "shelves"],
+            "reverse-identity": ["dddddddd-dddd-dddd-dddd-dddddddddddd", "bookshelves", "member"],
+            "cardinality": "many"
+          }
+        ],
+        {
+          "id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+          "etype": "users",
+          "bookshelves": "ffffffff-ffff-ffff-ffff-ffffffffffff"
+        }
+      ],
+      "errors": [
+        {"path": [0, "bookshelves"], "message": "unknown attribute `users.bookshelves`"},
+        {"path": [2, "bookshelves"], "message": "unknown attribute `users.bookshelves`"}
+      ]
+    },
+    {
+      "name": "partial-update-does-not-inherit-the-prior-forward-identity",
+      "input": [
+        ["update-attr", {"id": "44444444-4444-4444-4444-444444444444", "index?": true}],
+        {
+          "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "etype": "users",
+          "bookshelves": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        }
+      ],
+      "errors": [
+        {"path": [1, "bookshelves"], "message": "unknown attribute `users.bookshelves`"}
+      ]
+    }
+  ],
+  "accepted": [
+    {
+      "name": "new-identity-is-visible-before-the-update-step",
+      "input": [
+        {
+          "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "etype": "users",
+          "shelves": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        },
+        [
+          "update-attr",
+          {
+            "id": "44444444-4444-4444-4444-444444444444",
+            "forward-identity": ["cccccccc-cccc-cccc-cccc-cccccccccccc", "users", "shelves"],
+            "reverse-identity": ["dddddddd-dddd-dddd-dddd-dddddddddddd", "bookshelves", "member"],
+            "cardinality": "many"
+          }
+        ]
+      ],
+      "attr_id": "44444444-4444-4444-4444-444444444444",
+      "etype": "users",
+      "reverse_etype": "bookshelves"
+    },
+    {
+      "name": "partial-update-does-not-leak-old-triple-metadata",
+      "input": [
+        ["update-attr", {"id": "44444444-4444-4444-4444-444444444444", "index?": true}],
+        [
+          "add-triple",
+          "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "44444444-4444-4444-4444-444444444444",
+          "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        ]
+      ],
+      "attr_id": "44444444-4444-4444-4444-444444444444",
+      "etype": null,
+      "reverse_etype": null
+    }
+  ]
+}

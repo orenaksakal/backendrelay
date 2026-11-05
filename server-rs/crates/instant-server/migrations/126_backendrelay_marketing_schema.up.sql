@@ -1,0 +1,2 @@
+-- Reserved for the BackendRelay marketing schema already applied by the deployed
+-- JVM service. The Rust server does not own or query those extension tables.

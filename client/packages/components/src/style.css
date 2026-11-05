@@ -1,0 +1,176 @@
+@import 'tailwindcss';
+
+@plugin '@tailwindcss/forms';
+
+@layer base {
+  @font-face {
+    font-family: 'Berk Mono';
+    font-weight: normal;
+    font-style: normal;
+    font-stretch: normal;
+    src: url('https://stopaio.s3.amazonaws.com/public/BerkeleyMono-Regular.woff2')
+      format('woff2');
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Berk Mono';
+    font-weight: normal;
+    font-style: italic;
+    font-stretch: normal;
+    src: url('https://stopaio.s3.amazonaws.com/public/BerkeleyMono-Italic.woff2')
+      format('woff2');
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Berk Mono';
+    font-weight: bold;
+    font-style: normal;
+    font-stretch: normal;
+    src: url('https://stopaio.s3.amazonaws.com/public/BerkeleyMono-Bold.woff2')
+      format('woff2');
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Berk Mono';
+    font-weight: normal;
+    font-style: italic;
+    font-stretch: normal;
+    src: url('https://stopaio.s3.amazonaws.com/public/BerkeleyMono-BoldItalic.woff2')
+      format('woff2');
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Switzer';
+    font-weight: normal;
+    font-style: normal;
+    font-stretch: normal;
+    src: url('/fonts/Switzer-Variable.woff2') format('woff2');
+    font-display: swap;
+  }
+}
+
+@theme {
+  --default-font-family: 'Switzer', var(--font-switzer), 'Georgia';
+  --default-mono-font-family: 'Berk Mono', var(--font-berk-mono), 'monospace';
+  --font-mono: 'Berk Mono';
+}
+
+@theme inline {
+  --color-ui-canvas: var(--ui-canvas, light-dark(#f7f5ef, #161815));
+  --color-ui-surface: var(--ui-surface, light-dark(#fffdf8, #1d201c));
+  --color-ui-subtle: var(--ui-subtle, light-dark(#efede5, #292d27));
+  --color-ui-ink: var(--ui-ink, light-dark(#22251f, #f0f1e9));
+  --color-ui-muted: var(--ui-muted, light-dark(#697069, #afb6ab));
+  --color-ui-line: var(--ui-line, light-dark(#d9d6ca, #3a4038));
+  --color-ui-line-strong: var(--ui-line-strong, light-dark(#c2c0b5, #50584d));
+  --color-ui-accent: var(--ui-accent, light-dark(#167166, #75c9ba));
+  --color-ui-on-accent: var(--ui-on-accent, light-dark(#ffffff, #10221e));
+  --color-ui-accent-soft: var(--ui-accent-soft, light-dark(#dcefe9, #1d4039));
+  --color-ui-danger: var(--ui-danger, light-dark(#b23832, #ff9188));
+  --color-ui-warning: var(--ui-warning, light-dark(#9a6700, #f3c56b));
+  --color-ui-success: var(--ui-success, light-dark(#1c7a4a, #6ed39a));
+  --color-ui-code-surface: var(--ui-code-surface, light-dark(#f0f2f5, #20242c));
+}
+
+/* Explorer-only table affordances remain compatible with embedded mounts. */
+.explorer-workbench .explorer-row {
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.explorer-workbench .explorer-row:hover {
+  background: var(--ui-subtle, #efede5);
+}
+
+.explorer-workbench .explorer-row-selected {
+  background: var(--ui-accent-soft, #dcefe9);
+  box-shadow: inset 3px 0 0 var(--ui-accent, #167166);
+}
+
+.explorer-workbench .explorer-row-selected:hover {
+  background: var(--ui-accent-soft, #dcefe9);
+}
+
+.explorer-workbench .explorer-density-compact .group\/cell {
+  min-height: 1.9rem;
+}
+
+.explorer-workbench .explorer-density-compact .group\/cell:not(.px-2) {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+/* `light-dark()` provides standalone Shadow DOM defaults without declaring
+ * --ui-* locally, so dashboard tokens still inherit through the host. */
+:host {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--ui-line, #d9dee8);
+  }
+}
+
+html {
+  --default-mono-font-family: 'Berk Mono', var(--font-berk-mono), 'monospace';
+}
+
+/* Mirrored in www/styles/globals.css for the dashboard's non-shadow-DOM mount. */
+@keyframes filter-shadow-r-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes filter-shadow-l-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@utility filter-shadow-r {
+  opacity: 1;
+
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      opacity: 0;
+      animation: filter-shadow-r-fade linear backwards;
+      animation-timeline: --filter-scroll;
+      animation-range: calc(100% - 16px) 100%;
+    }
+  }
+}
+
+@utility filter-shadow-l {
+  opacity: 0;
+
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: filter-shadow-l-fade linear forwards;
+      animation-timeline: --filter-scroll;
+      animation-range: 0% 16px;
+    }
+  }
+}

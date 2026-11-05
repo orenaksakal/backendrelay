@@ -1,0 +1,8 @@
+{
+  "entity_count": 128,
+  "team_count": 11,
+  "page_size": 37,
+  "missing_handle_modulo": 9,
+  "null_handle_modulo": 13,
+  "duplicate_row_modulo": 17
+}

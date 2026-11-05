@@ -1,0 +1,144 @@
+{
+  "source": "server/src/instant/system_catalog.clj",
+  "attribute_count": 58,
+  "namespaces": [
+    {
+      "etype": "$users",
+      "id_attr": "96653230-13ff-ffff-a4b4-81ffffffffff",
+      "id_ident": "96653231-03ff-ffff-a4b4-81ffffffffff",
+      "default_fetch": ["id", "email", "type", "imageURL"],
+      "schema": [
+        "id|blob|one|true|true|false|-",
+        "email|blob|one|true|true|false|string",
+        "type|blob|one|false|false|false|string",
+        "imageURL|blob|one|false|false|false|string",
+        "linkedPrimaryUser|ref|one|false|false|false|-"
+      ]
+    },
+    {
+      "etype": "$magicCodes",
+      "id_attr": "96653230-13ff-ffff-60b4-81ffffffffff",
+      "id_ident": "96653231-03ff-ffff-60b4-81ffffffffff",
+      "default_fetch": ["id", "codeHash", "email"],
+      "schema": [
+        "id|blob|one|true|true|false|-",
+        "codeHash|blob|one|false|true|false|string",
+        "email|blob|one|false|true|false|string"
+      ]
+    },
+    {
+      "etype": "$userRefreshTokens",
+      "id_attr": "96653230-13ff-ffff-a474-81ffffffffff",
+      "id_ident": "96653231-03ff-ffff-a474-81ffffffffff",
+      "default_fetch": ["id", "hashedToken"],
+      "schema": [
+        "id|blob|one|true|true|false|-",
+        "hashedToken|blob|one|true|true|false|string",
+        "$user|ref|one|false|true|false|-"
+      ]
+    },
+    {
+      "etype": "$oauthProviders",
+      "id_attr": "96653230-13ff-ffff-73f4-81ffffffffff",
+      "id_ident": "96653231-03ff-ffff-73f4-81ffffffffff",
+      "default_fetch": ["id", "name"],
+      "schema": [
+        "id|blob|one|true|true|false|-",
+        "name|blob|one|true|true|false|string"
+      ]
+    },
+    {
+      "etype": "$oauthUserLinks",
+      "id_attr": "96653230-13ff-ffff-72f4-81ffffffffff",
+      "id_ident": "96653231-03ff-ffff-72f4-81ffffffffff",
+      "default_fetch": ["id", "sub", "$oauthProvider", "sub+$oauthProvider"],
+      "schema": [
+        "id|blob|one|true|true|false|-",
+        "sub|blob|one|false|true|false|string",
+        "$user|ref|one|false|true|false|-",
+        "$oauthProvider|blob|one|false|true|false|-",
+        "sub+$oauthProvider|blob|one|true|true|false|string"
+      ]
+    },
+    {
+      "etype": "$oauthClients",
+      "id_attr": "96653230-13ff-ffff-70b4-81ffffffffff",
+      "id_ident": "96653231-03ff-ffff-70b4-81ffffffffff",
+      "default_fetch": ["id", "name", "clientId", "encryptedClientSecret", "extraAudiences", "discoveryEndpoint", "meta", "redirectTo", "useSharedCredentials"],
+      "schema": [
+        "id|blob|one|true|true|false|-",
+        "$oauthProvider|ref|one|false|false|false|-",
+        "name|blob|one|true|true|false|string",
+        "clientId|blob|one|false|true|false|-",
+        "encryptedClientSecret|blob|one|false|false|false|string",
+        "extraAudiences|blob|one|false|false|false|-",
+        "discoveryEndpoint|blob|one|false|false|false|string",
+        "meta|blob|one|false|false|false|-",
+        "redirectTo|blob|one|false|false|false|string",
+        "useSharedCredentials|blob|one|false|false|false|boolean"
+      ]
+    },
+    {
+      "etype": "$oauthCodes",
+      "id_attr": "96653230-13ff-ffff-13b4-81ffffffffff",
+      "id_ident": "96653231-03ff-ffff-13b4-81ffffffffff",
+      "default_fetch": ["id", "codeHash", "codeChallengeMethod", "codeChallenge", "userInfo"],
+      "schema": [
+        "id|blob|one|true|true|false|-",
+        "codeHash|blob|one|true|true|false|string",
+        "codeChallengeMethod|blob|one|false|false|false|string",
+        "codeChallenge|blob|one|false|false|false|string",
+        "userInfo|blob|one|false|false|false|-",
+        "$oauthClient|ref|one|false|false|false|-"
+      ]
+    },
+    {
+      "etype": "$oauthRedirects",
+      "id_attr": "96653230-13ff-ffff-7474-81ffffffffff",
+      "id_ident": "96653231-03ff-ffff-7474-81ffffffffff",
+      "default_fetch": ["id", "stateHash", "cookieHash", "redirectUrl", "redirectTo", "codeChallengeMethod", "codeChallenge"],
+      "schema": [
+        "id|blob|one|true|true|false|-",
+        "stateHash|blob|one|true|true|false|string",
+        "cookieHash|blob|one|false|false|false|string",
+        "redirectUrl|blob|one|false|false|false|string",
+        "redirectTo|blob|one|false|false|false|string",
+        "$oauthClient|ref|one|false|false|false|-",
+        "codeChallengeMethod|blob|one|false|false|false|string",
+        "codeChallenge|blob|one|false|false|false|string"
+      ]
+    },
+    {
+      "etype": "$files",
+      "id_attr": "96653230-13ff-ffff-2a34-81ffffffffff",
+      "id_ident": "96653231-03ff-ffff-2a34-81ffffffffff",
+      "default_fetch": ["id", "path", "size", "content-type", "content-disposition", "location-id", "key-version", "url"],
+      "schema": [
+        "id|blob|one|true|true|false|-",
+        "path|blob|one|true|true|true|string",
+        "size|blob|one|false|true|true|number",
+        "content-type|blob|one|false|true|false|string",
+        "content-disposition|blob|one|false|true|false|string",
+        "location-id|blob|one|true|true|true|string",
+        "key-version|blob|one|false|false|false|number",
+        "url|blob|one|false|false|false|string"
+      ]
+    },
+    {
+      "etype": "$streams",
+      "id_attr": "96653230-13ff-ffff-94f4-81ffffffffff",
+      "id_ident": "96653231-03ff-ffff-94f4-81ffffffffff",
+      "default_fetch": ["id", "clientId", "machineId", "done", "size", "hashedReconnectToken", "abortReason"],
+      "schema": [
+        "id|blob|one|true|true|false|-",
+        "clientId|blob|one|true|true|true|string",
+        "machineId|blob|one|false|false|false|string",
+        "$files|ref|many|true|false|false|-",
+        "done|blob|one|false|false|false|boolean",
+        "size|blob|one|false|false|false|number",
+        "hashedReconnectToken|blob|one|false|false|false|string",
+        "abortReason|blob|one|false|false|false|string"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+# Alternative production edge: Caddy obtains Let's Encrypt certificates through
+# the Cloudflare DNS-01 challenge. This requires a Caddy image built with the
+# Cloudflare DNS provider, for example:
+#
+#   xcaddy build --with github.com/caddy-dns/cloudflare
+#
+# and the `cloudflare` provider module is not part of the stock caddy image.
+# Set CLOUDFLARE_DNS_API_TOKEN to a token with Zone:DNS:Edit on the zone.
+# Keep Cloudflare's proxy status in mind: with the proxy enabled, clients still
+# arrive through Cloudflare and CF-Connecting-IP remains the client address.
+{
+	admin off
+	email {$CADDY_EMAIL:ops@example.com}
+	servers {
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+		client_ip_headers CF-Connecting-IP
+		timeouts {
+			read_header 10s
+			idle 2m
+		}
+	}
+}
+
+(backend_body_limits) {
+	@restore path /dash/restores/zip
+	request_body @restore {
+		max_size {$CADDY_MAX_RESTORE_BODY:1100MB}
+	}
+
+	@uploads path /dash/apps/*/storage/upload /admin/storage/upload /storage/upload
+	request_body @uploads {
+		max_size {$CADDY_MAX_UPLOAD_BODY:110MB}
+	}
+
+	@management {
+		path /dash/* /admin/* /superadmin/*
+		not path /dash/restores/zip /dash/apps/*/storage/upload /admin/storage/upload
+	}
+	request_body @management {
+		max_size {$CADDY_MAX_MANAGEMENT_BODY:2MB}
+	}
+
+	@other {
+		not path /dash/* /admin/* /superadmin/* /storage/*
+	}
+	request_body @other {
+		max_size {$CADDY_MAX_REQUEST_BODY:8MB}
+	}
+}
+
+{$BACKEND_DOMAIN:api.localhost} {
+	tls {
+		dns cloudflare {$CLOUDFLARE_DNS_API_TOKEN}
+	}
+	import backend_body_limits
+	log {
+		output stdout
+		format json
+	}
+	reverse_proxy {$SERVER_UPSTREAMS} {
+		health_uri /health/system
+		health_interval 10s
+		health_timeout 5s
+		health_status 200
+		flush_interval -1
+		header_up X-Forwarded-For {client_ip}
+	}
+}
+
+{$DASHBOARD_DOMAIN:dash.localhost} {
+	tls {
+		dns cloudflare {$CLOUDFLARE_DNS_API_TOKEN}
+	}
+	encode zstd gzip
+	log {
+		output stdout
+		format json
+	}
+	reverse_proxy dashboard:8080 {
+		health_uri /healthz
+		health_interval 10s
+		health_timeout 5s
+		health_status 200
+		header_up X-Forwarded-For {client_ip}
+	}
+}

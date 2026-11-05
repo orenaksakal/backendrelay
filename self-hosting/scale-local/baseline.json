@@ -1,0 +1,21 @@
+{
+  "_note": "Weekly scale regression baseline for self-hosting/scale-local/weekly.sh. Values are null until the first weekly run on the desktop: run `python3 self-hosting/scale-local/weekly_compare.py --results-dir <date dir> --update-baseline` and commit the numbers. A null metric is reported as unmeasured instead of compared, so an unfilled baseline never fails the timer.",
+  "scenarios": {
+    "10x1000": {
+      "apps": 10,
+      "usersPerApp": 1000,
+      "errorCount": null,
+      "p95OpLatencyMs": null,
+      "serverMsPerOp": null,
+      "pgMsPerOp": null
+    },
+    "50x100": {
+      "apps": 50,
+      "usersPerApp": 100,
+      "errorCount": null,
+      "p95OpLatencyMs": null,
+      "serverMsPerOp": null,
+      "pgMsPerOp": null
+    }
+  }
+}

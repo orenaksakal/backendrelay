@@ -1,0 +1,26 @@
+{
+  "oracle": "4e0a1bd8 server/src/instant/db/model/entity.clj:20-38 and server/src/instant/util/instaql.clj:22-37,99-102",
+  "cases": [
+    {
+      "name": "relationship-only-parent-after-scalar-filtering",
+      "query": {"users":{"bookshelves":{}}},
+      "parent_entity": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "child_entity": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "child_id_attribute": "55555555-5555-5555-5555-555555555555",
+      "child_name_attribute": "aaaaaaaa-1111-1111-1111-111111111111",
+      "child_name": "Visible relationship",
+      "expected": {
+        "users": [
+          {
+            "bookshelves": [
+              {
+                "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                "name": "Visible relationship"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
