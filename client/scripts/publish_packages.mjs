@@ -281,7 +281,7 @@ function publishCommand(stagingDir, options) {
       ? process.env.PUBLISH_PROVENANCE !== "0"
       : process.env.GITHUB_ACTIONS === "true"
   ) {
-    // Provenance needs the workflow's OIDC token, so it only runs in CI unless
+    // Provenance needs an OIDC token from the publishing environment, so it only runs there unless
     // PUBLISH_PROVENANCE overrides it.
     args.push("--provenance");
   }

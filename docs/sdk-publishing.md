@@ -59,10 +59,12 @@ not contain.
 2. Enable two-factor authentication on the publishing account, then create a
    **granular access token** with read/write access to the `@backendrelay`
    scope (automation token: bypasses 2FA prompts when publishing).
-3. Store it as the repository secret `NPM_TOKEN`. The
-   [Publish SDK](../.github/workflows/publish-sdk.yml) workflow uses it.
-4. Do the first publish by hand (below). After that, publish from CI only, so
-   provenance and the token stay off developer machines.
+3. Store it as the repository secret `NPM_TOKEN` in the private development
+   repository. This public snapshot does not include the CI publishing
+   workflow.
+4. Do the first publish by hand (below). After that, publish only from the
+   private development repository's controlled environment, so provenance and
+   the token stay off developer machines.
 
 ## Rehearsal against Verdaccio
 
@@ -116,25 +118,23 @@ node ./scripts/publish_packages.mjs --package core --package react
 A version can be published only once. To ship a correction, bump
 `version.ts`, merge, and publish again.
 
-## From CI
+## Publishing manually
 
-`.github/workflows/publish-sdk.yml` publishes on `sdk-v*` tags. The tag must
-equal `sdk-v` plus the version in `version.ts`, so `sdk-v1.1.0` publishes
-`1.1.0`; the job fails before uploading on a mismatch. It also runs on demand
-with `dry-run` enabled by default.
-
-Publishing with provenance needs a public repository or an npm plan that
-supports provenance for private ones. If npm rejects the attestation, set
-`PUBLISH_PROVENANCE=0` in the workflow to publish without it and record why.
+This public snapshot does not include the CI publishing workflow. Publish from
+the private development repository, or run the same publish command manually
+from a clean checkout. Publishing with provenance requires a public repository
+or an npm plan that supports provenance for private ones.
 
 ## Compatibility lanes
 
-Nightly runs `sdk-compat` (`nightly.yml`). It resolves the exact scope and
+The private development repository runs `sdk-compat` nightly; this public
+snapshot does not include that workflow. It resolves the exact scope and
 version pinned by `examples/*/package.json` and runs the Core and Admin e2e
 suites against the published npm tarballs of that version, not the workspace
 `dist/`. The same lane runs against the oldest version still reported in
-production by `backendrelay_sdk_sessions`; the CI runner holds no production
-credentials, so an operator reads it where Prometheus is reachable:
+production by `backendrelay_sdk_sessions`; the private development CI runner
+holds no production credentials, so an operator reads it where Prometheus is
+reachable:
 
 ```sh
 PROMETHEUS_URL=https://prometheus.example node self-hosting/sdk-compat/oldest-sdk-version.mjs

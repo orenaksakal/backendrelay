@@ -5,11 +5,10 @@
 # Without --push the two platforms are built into the buildx cache and the host
 # architecture is loaded for local testing. With --push the multi-platform
 # indexes are pushed to GHCR and --digests-out writes the manifest digests that
-# the release workflow signs and verifies.
+# the release process signs and verifies.
 #
-# .github/workflows/release-images.yml calls this script so local builds and
-# release builds share one code path. See .github/RUNNER.md for the runner and
-# owner setup.
+# This script is the release build entry point; local and automated release
+# builds share the same code path.
 set -euo pipefail
 
 usage() {

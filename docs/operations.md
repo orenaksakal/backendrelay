@@ -2181,66 +2181,36 @@ into the next tag instead of moving an existing one.
    git push origin v2026.11.1
    ```
 
-2. Wait for the tag's workflows. `release-images.yml` builds and signs the
-   server and dashboard images for `linux/amd64` and `linux/arm64` and uploads
-   `release-digests.json`. `nightly.yml` must also have passed on that commit;
-   if it has not run there yet, start it for the tag:
+2. Build and push the signed multi-architecture images:
 
    ```sh
-   gh workflow run nightly.yml --ref v2026.11.1
+   bash self-hosting/release-images.sh --push --tag v2026.11.1
    ```
 
-3. From a checkout of the tag, run the release gate:
-
-   ```sh
-   git fetch --tags
-   git checkout v2026.11.1
-   make release-check TAG=v2026.11.1
-   ```
-
-   The gate checks, printing `check=<name> result=pass|fail` for each (the
-   first release's upgrade/rollback check prints `skip`):
-
-   - the tag exists and the latest nightly run for its commit succeeded;
-   - `release-images.yml` published digests for the commit, and both images
-     verify (multi-arch platforms, cosign signature against
-     `self-hosting/cosign.pub`, SBOM and provenance);
-   - the previous release upgrades and rolls back to this digest (skipped with
-     a message for the first release);
-   - the official SDK smoke suite passes against the exact server digest;
-   - `CHANGELOG.md` has a `## [<tag>]` section.
-
-   It exits non-zero and prints a final summary if any check fails. Live Docker
-   and registry access is required, plus an authenticated `gh`, `jq`, `cosign`,
-   and the release public key; set `COSIGN_PUBLIC_KEY` to use another trust
-   anchor.
+3. Verify the pushed digests on both platforms, the cosign signature against
+   `self-hosting/cosign.pub`, and the SBOM/provenance attestations. The private
+   development repository's automated release gate is not included in this
+   public snapshot.
 
 4. For a release that touches the realtime or query path, run the
    [weekly scale regression](#weekly-scale-regression) from a checkout of the tag
    and compare it with the committed baseline.
 
-5. Deploy only after the gate passes. The deployment takes a pre-deployment
+5. Deploy only after verification passes. The deployment takes a pre-deployment
    backup and refuses to continue if that backup fails; see
    [Migrations and upgrades](self-hosting.md#migrations-and-upgrades) for the
    upgrade itself.
 
 ## Dependency updates
 
-[`.github/dependabot.yml`](../.github/dependabot.yml) opens grouped dependency
-PRs every Monday: Cargo in `server-rs/`, pnpm in `client/`, GitHub Actions pins,
-the Dockerfiles, and the `self-hosting/` Compose stacks. Semver ecosystems
-(Cargo, pnpm, Actions) keep majors in a separate PR so a breaking bump is never
-mixed with routine updates, and the queue is capped at five PRs per ecosystem.
-`cel` is ignored because the workspace patches it to `server-rs/vendor/cel`.
-
-CI must pass before merging, and merges stay manual: there is no auto-merge
-label or workflow. Review the changelog and lockfile diff, then merge and let
-CI verify the commit like any other.
+This public snapshot does not include Dependabot configuration or automated
+dependency PRs. Dependency updates are handled in the private development
+repository. Review `Cargo.lock` and `pnpm-lock.yaml` before releasing.
 
 Monitoring images are supplied by the operator through `${PROMETHEUS_IMAGE}`,
 `${ALERTMANAGER_IMAGE}`, `${GRAFANA_IMAGE}`, `${NODE_EXPORTER_IMAGE}` and
 `${POSTGRES_EXPORTER_IMAGE}` in
-`self-hosting/docker-compose.monitoring.yml`, so Dependabot cannot see them.
+`self-hosting/docker-compose.monitoring.yml`.
 Review those digest-pinned images quarterly with
 `docker buildx imagetools inspect <image>` and upgrade one at a time.
 
@@ -2992,12 +2962,11 @@ today's work: fix it, or write it down before closing the laptop.
 
 ### Release process
 
-1. **Tag and build.** Tag the release and push the tag; the tag-triggered image
-   workflow (P5.3) builds the multi-arch server and dashboard images, signs them
-   with cosign keyless and attaches an SBOM. If a tag build is not available,
-   build both by hand as in [Building images](self-hosting.md#building-images)
-   and sign them with `cosign sign` before pushing. Verify what you are about to
-   deploy, from the host or your workstation:
+1. **Tag and build.** Tag the release and push the tag. Build the multi-arch
+   server and dashboard images with
+   `bash self-hosting/release-images.sh --push --tag <tag>`, sign them with
+   `cosign sign` and attach an SBOM. Verify what you are about to deploy, from
+   the host or your workstation:
 
    ```sh
    git tag -a v2026.11.1 -m 'BackendRelay v2026.11.1'

@@ -296,9 +296,9 @@ Verdaccio as described in [Publishing the SDK](sdk-publishing.md#rehearsal-again
 
 1. Bump `client/packages/version/src/version.ts`.
 2. Bump `MAX_TESTED_SDK_VERSION` in `protocol.rs` to the same version.
-3. Merge, then let the [Publish SDK](../.github/workflows/publish-sdk.yml)
-   workflow publish on the `sdk-v<version>` tag, or dispatch it with `dry-run`
-   first.
+3. Merge, then publish using the procedure in
+   [Publishing the SDK](sdk-publishing.md). This public snapshot does not
+   include the CI publishing workflow.
 
 Publishing changes what new installs receive; it does not upgrade running
 apps. That is the rollout below.

@@ -28,7 +28,7 @@ prune-dev:
 		echo "cargo not found, skipping cargo clean."; \
 	fi
 
-.PHONY: verify-quick verify-local verify-dashboard-browser verify-security-policy release-check audit
+.PHONY: verify-quick verify-local verify-dashboard-browser verify-security-policy audit
 verify-quick:
 	python3 self-hosting/verify-local.py --profile quick
 
@@ -40,10 +40,6 @@ verify-dashboard-browser:
 
 verify-security-policy:
 	python3 self-hosting/security/production-policy.py
-
-release-check:
-	@test -n "$(TAG)" || { echo "usage: make release-check TAG=<tag>" >&2; exit 2; }
-	bash self-hosting/release-check.sh "$(TAG)"
 
 audit:
 	@command -v cargo-deny >/dev/null 2>&1 || { \

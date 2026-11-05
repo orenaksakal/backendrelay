@@ -9,10 +9,6 @@ relational queries, live subscriptions, optimistic updates, authentication,
 permission rules, file storage and presence, and run the whole backend on your
 own infrastructure.
 
-> **Status:** under active development. Interfaces and configuration can still
-> change, and there are no tagged releases yet. Run it in production only after
-> testing it with your own workload.
-
 ## Features
 
 - **Live queries:** InstaQL relational queries over a triple store in PostgreSQL;

@@ -1,4 +1,0 @@
-self-hosted-runner:
-  # Custom label of the owner's self-hosted runner (.github/RUNNER.md).
-  labels:
-    - backendrelay

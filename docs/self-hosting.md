@@ -92,9 +92,9 @@ from a fork.
 Both images build for the host architecture with a plain `docker build`. The
 release flow publishes linux/amd64 and linux/arm64 indexes with signatures,
 SBOM and provenance: run `bash self-hosting/release-images.sh` to build both
-platforms locally (the host architecture is loaded for testing), `--push` to
-publish, and see [`.github/RUNNER.md`](../.github/RUNNER.md) for the
-tag-triggered workflow.
+platforms locally (the host architecture is loaded for testing), or `--push` to
+publish. Tag-triggered release automation is maintained in the private
+development repository and is not included in this public snapshot.
 
 ### Server image
 
