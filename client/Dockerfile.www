@@ -6,7 +6,7 @@ ARG OCI_REVISION=unknown
 # image dependency, which this app never loads (astro.config.mjs uses the
 # passthrough image service and disables the image endpoint); @vercel/og renders
 # through wasm. The runtime stage stays on the target platform.
-FROM --platform=$BUILDPLATFORM node:22.22.2-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc55349f39b4bc3688448bb6e AS dependencies
+FROM --platform=$BUILDPLATFORM node:26.12.1-slim@sha256:94816674c62774da0d099a947bf4613b9e1972a2733abd0d0cd80e795f8411d0 AS dependencies
 
 WORKDIR /monorepo
 
@@ -17,7 +17,7 @@ COPY patches ./patches
 # Install project dependencies with frozen lockfile for reproducible builds
 RUN corepack enable pnpm && pnpm install --frozen-lockfile
 
-FROM --platform=$BUILDPLATFORM node:22.22.2-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc55349f39b4bc3688448bb6e AS pruner
+FROM --platform=$BUILDPLATFORM node:26.12.1-slim@sha256:94816674c62774da0d099a947bf4613b9e1972a2733abd0d0cd80e795f8411d0 AS pruner
 
 WORKDIR /monorepo
 
@@ -27,7 +27,7 @@ COPY . .
 RUN corepack enable pnpm;
 RUN pnpm turbo prune backendrelay-www --docker
 
-FROM --platform=$BUILDPLATFORM node:22.22.2-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc55349f39b4bc3688448bb6e AS builder
+FROM --platform=$BUILDPLATFORM node:26.12.1-slim@sha256:94816674c62774da0d099a947bf4613b9e1972a2733abd0d0cd80e795f8411d0 AS builder
 WORKDIR /monorepo
 ARG NEXT_PUBLIC_SELF_HOSTED=true
 ENV NEXT_PUBLIC_SELF_HOSTED=${NEXT_PUBLIC_SELF_HOSTED}
@@ -47,7 +47,7 @@ RUN NODE_OPTIONS=--max-old-space-size=4096 \
     pnpm turbo run build --filter=backendrelay-www... --env-mode=loose
 
 # Production runner
-FROM node:22.22.2-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc55349f39b4bc3688448bb6e AS runner
+FROM node:26.12.1-slim@sha256:94816674c62774da0d099a947bf4613b9e1972a2733abd0d0cd80e795f8411d0 AS runner
 WORKDIR /app
 
 ARG OCI_SOURCE
