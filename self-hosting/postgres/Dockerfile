@@ -1,6 +1,6 @@
 ARG OCI_SOURCE=https://github.com/instantdb/instant
 
-FROM postgres:17.11-bookworm@sha256:858bb5e98eed02eb8cafbcdc007f9a65d1b613972028944a8ec2133ccaf80d27
+FROM postgres:18.4-bookworm@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382
 
 ARG OCI_SOURCE
 LABEL org.opencontainers.image.source="$OCI_SOURCE"
