@@ -2203,8 +2203,8 @@ into the next tag instead of moving an existing one.
 
 ## Dependency updates
 
-This public snapshot does not include Dependabot configuration or automated
-dependency PRs. Dependency updates are handled in the private development
+This public snapshot does not include automated dependency-update
+configuration or PRs. Dependency updates are handled in the private development
 repository. Review `Cargo.lock` and `pnpm-lock.yaml` before releasing.
 
 Monitoring images are supplied by the operator through `${PROMETHEUS_IMAGE}`,
