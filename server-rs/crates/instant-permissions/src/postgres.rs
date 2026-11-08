@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::future::Future;
 
 use instant_instaql::{Attribute, AttributeCatalog, AttributeValueType};
@@ -234,14 +234,7 @@ impl PermissionDataLoader for PostgresPermissionDataLoader<'_> {
         transaction: &'a tokio_postgres::Transaction<'_>,
         refs: Vec<RefRequest>,
     ) -> PermissionLoadFuture<'a, RefCache> {
-        Box::pin(async move {
-            let mut loaded = RefCache::new();
-            for request in refs {
-                let values = load_ref(transaction, self.app_id, self.catalog, &request).await?;
-                loaded.insert(request, values);
-            }
-            Ok(loaded)
-        })
+        Box::pin(async move { load_ref_batch(transaction, self.app_id, self.catalog, refs).await })
     }
 }
 
@@ -450,101 +443,194 @@ fn decode_rows(
         .collect())
 }
 
-async fn load_ref(
+/// Loads every requested reference path with one statement per path segment and
+/// per distinct `(etype, path)`, independent of how many entities are being
+/// checked. Requests that share a path are resolved together; each entity keeps
+/// the exact ordering and duplicate semantics of an individual lookup.
+async fn load_ref_batch(
     transaction: &tokio_postgres::Transaction<'_>,
     app_id: Uuid,
     catalog: &AttributeCatalog,
-    request: &RefRequest,
-) -> Result<Vec<JsonValue>, PermissionError> {
-    let segments = request
-        .path
+    requests: Vec<RefRequest>,
+) -> Result<RefCache, PermissionError> {
+    let mut groups = BTreeMap::<(String, String), Vec<RefRequest>>::new();
+    for request in requests {
+        groups
+            .entry((request.etype.clone(), request.path.clone()))
+            .or_default()
+            .push(request);
+    }
+    let mut loaded = RefCache::new();
+    for ((etype, path), group) in groups {
+        let values = load_ref_group(transaction, app_id, catalog, &etype, &path, &group).await?;
+        for (request, values) in group.into_iter().zip(values) {
+            loaded.insert(request, values);
+        }
+    }
+    Ok(loaded)
+}
+
+/// Resolves one `(etype, path)` group. `requests` all share `etype` and `path`,
+/// and the returned vectors are aligned with that request order.
+#[allow(clippy::too_many_lines)]
+async fn load_ref_group(
+    transaction: &tokio_postgres::Transaction<'_>,
+    app_id: Uuid,
+    catalog: &AttributeCatalog,
+    etype: &str,
+    path: &str,
+    requests: &[RefRequest],
+) -> Result<Vec<Vec<JsonValue>>, PermissionError> {
+    let segments = path
         .split('.')
         .filter(|segment| !segment.is_empty())
         .collect::<Vec<_>>();
     if segments.is_empty() {
-        return Ok(Vec::new());
+        return Ok(vec![Vec::new(); requests.len()]);
     }
-    let mut etype = request.etype.as_str();
-    let Some(entity_id) = request.entity_id.as_uuid() else {
-        return Err(PermissionError::Loader(
-            "Instant entity references require UUID identifiers".to_owned(),
-        ));
-    };
-    let mut entity_ids = vec![entity_id];
+    let mut entity_ids = Vec::with_capacity(requests.len());
+    for request in requests {
+        let Some(entity_id) = request.entity_id.as_uuid() else {
+            return Err(PermissionError::Loader(
+                "Instant entity references require UUID identifiers".to_owned(),
+            ));
+        };
+        entity_ids.push(vec![entity_id]);
+    }
+
+    let mut etype = etype;
     for (index, label) in segments.iter().enumerate() {
         let last = index + 1 == segments.len();
         if let Some(attribute) = catalog.forward(etype, label) {
+            // One query covers the union of every request's current entities.
+            // Rows stay in the legacy global `created_at, entity_id` order and
+            // are then attributed to each root that requested their entity.
+            let mut roots_by_id = HashMap::<Uuid, Vec<usize>>::new();
+            let mut union = HashSet::new();
+            for (root, ids) in entity_ids.iter().enumerate() {
+                for id in ids {
+                    union.insert(*id);
+                    let roots = roots_by_id.entry(*id).or_default();
+                    if roots.last() != Some(&root) {
+                        roots.push(root);
+                    }
+                }
+            }
+            if union.is_empty() {
+                return Ok(vec![Vec::new(); requests.len()]);
+            }
+            let mut union = union.into_iter().collect::<Vec<_>>();
+            union.sort_unstable();
             let rows = transaction
                 .query_typed(
-                    "SELECT value
+                    "SELECT entity_id, value
                        FROM triples
                       WHERE app_id = $1 AND attr_id = $2 AND entity_id = ANY($3)
                       ORDER BY created_at, entity_id",
                     &[
                         (&app_id, Type::UUID),
                         (&attribute.id, Type::UUID),
-                        (&entity_ids, Type::UUID_ARRAY),
+                        (&union, Type::UUID_ARRAY),
                     ],
                 )
                 .await
                 .map_err(loader_error)?;
-            let values = rows
-                .into_iter()
-                .map(|row| row.get::<_, Json<JsonValue>>("value").0)
-                .collect::<Vec<_>>();
+            let mut values = vec![Vec::<JsonValue>::new(); requests.len()];
+            for row in rows {
+                let entity_id = row.get::<_, Uuid>("entity_id");
+                let Some(roots) = roots_by_id.get(&entity_id) else {
+                    continue;
+                };
+                let value = row.get::<_, Json<JsonValue>>("value").0;
+                for root in roots {
+                    values[*root].push(value.clone());
+                }
+            }
             if last {
                 return Ok(values);
             }
             if attribute.value_type != AttributeValueType::Ref {
-                return Ok(Vec::new());
+                return Ok(vec![Vec::new(); requests.len()]);
             }
-            entity_ids = values
-                .iter()
-                .filter_map(|value| value.as_str().and_then(|value| Uuid::parse_str(value).ok()))
-                .collect();
             let Some(next_etype) = attribute.reverse_etype.as_deref() else {
-                return Ok(Vec::new());
+                return Ok(vec![Vec::new(); requests.len()]);
             };
+            entity_ids = values
+                .into_iter()
+                .map(|values| {
+                    values
+                        .into_iter()
+                        .filter_map(|value| {
+                            value.as_str().and_then(|value| Uuid::parse_str(value).ok())
+                        })
+                        .collect()
+                })
+                .collect();
             etype = next_etype;
         } else if let Some(attribute) = catalog.reverse(etype, label) {
-            // Preserve the old concatenation order, including repeated targets:
-            // each input occurrence owns one ordered group of matching rows.
-            // ANY()/DISTINCT would incorrectly remove duplicate traversal paths.
+            // Preserve the legacy concatenation order, including repeated
+            // targets: each input occurrence owns one ordered group of matching
+            // rows. ANY()/DISTINCT here would incorrectly remove duplicate
+            // traversal paths, so the root and its ordinal travel to SQL.
+            let mut requested = Vec::new();
+            let mut roots = Vec::<i64>::new();
+            for (root, ids) in entity_ids.iter().enumerate() {
+                let Ok(root) = i64::try_from(root) else {
+                    continue;
+                };
+                for id in ids {
+                    requested.push(*id);
+                    roots.push(root);
+                }
+            }
+            if requested.is_empty() {
+                return Ok(vec![Vec::new(); requests.len()]);
+            }
             let rows = transaction
                 .query_typed(
-                    "SELECT matched.entity_id
-                   FROM unnest($3::uuid[]) WITH ORDINALITY AS requested(entity_id, ordinal)
-                   CROSS JOIN LATERAL (
-                       SELECT entity_id, created_at FROM triples
-                        WHERE app_id = $1 AND attr_id = $2
-                          AND value = to_jsonb(requested.entity_id)
-                   ) AS matched
-                  ORDER BY requested.ordinal, matched.created_at, matched.entity_id",
+                    "SELECT batch.root, matched.entity_id
+                       FROM unnest($3::uuid[], $4::bigint[]) WITH ORDINALITY
+                            AS batch(entity_id, root, ordinal)
+                       CROSS JOIN LATERAL (
+                           SELECT entity_id, created_at FROM triples
+                            WHERE app_id = $1 AND attr_id = $2
+                              AND value = to_jsonb(batch.entity_id)
+                       ) AS matched
+                      ORDER BY batch.root, batch.ordinal,
+                               matched.created_at, matched.entity_id",
                     &[
                         (&app_id, Type::UUID),
                         (&attribute.id, Type::UUID),
-                        (&entity_ids, Type::UUID_ARRAY),
+                        (&requested, Type::UUID_ARRAY),
+                        (&roots, Type::INT8_ARRAY),
                     ],
                 )
                 .await
                 .map_err(loader_error)?;
-            let next_ids = rows
-                .into_iter()
-                .map(|row| row.get::<_, Uuid>("entity_id"))
-                .collect::<Vec<_>>();
+            let mut next_ids = vec![Vec::<Uuid>::new(); requests.len()];
+            for row in rows {
+                let root = row.get::<_, i64>("root");
+                let Some(root) = usize::try_from(root)
+                    .ok()
+                    .filter(|root| *root < requests.len())
+                else {
+                    continue;
+                };
+                next_ids[root].push(row.get::<_, Uuid>("entity_id"));
+            }
             if last {
-                return Ok(next_ids.into_iter().map(|id| json!(id)).collect());
+                return Ok(next_ids
+                    .into_iter()
+                    .map(|ids| ids.into_iter().map(|id| json!(id)).collect())
+                    .collect());
             }
             entity_ids = next_ids;
             etype = &attribute.etype;
         } else {
-            return Ok(Vec::new());
-        }
-        if entity_ids.is_empty() {
-            return Ok(Vec::new());
+            return Ok(vec![Vec::new(); requests.len()]);
         }
     }
-    Ok(Vec::new())
+    Ok(vec![Vec::new(); requests.len()])
 }
 
 #[allow(clippy::needless_pass_by_value)] // `Result::map_err` transfers ownership.
