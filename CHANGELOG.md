@@ -52,6 +52,8 @@ Releases use date-based tags, for example `v2026.11.1`.
 - OAuth audiences are always enforced, with tighter nonce, origin and metadata
   checks.
 - Permission rules compile after the request's database lease is released.
+- Permission `data.ref` lookups are resolved once per view rule path instead of
+  once per result entity, so query cost no longer grows with rows × link reads.
 - Dashboard signup and ephemeral app creation are closed by default, and email
   settings are limited to dashboard users.
 

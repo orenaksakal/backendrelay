@@ -537,3 +537,120 @@ async fn prepared_entity_statement_matches_the_text_loader_and_reads_fresh_snaps
     tx.rollback().await.unwrap();
     f.close().await;
 }
+
+#[tokio::test]
+async fn batched_paths_keep_per_root_results_for_shared_and_distinct_targets() {
+    let Some(mut f) = Fixture::new().await else {
+        return;
+    };
+    let third_post = Uuid::new_v4();
+    let other_user = Uuid::new_v4();
+    let owner = f.attr("posts", "owner");
+    let title = f.attr("posts", "title");
+    f.insert(f.app, third_post, owner, json!(other_user), 11)
+        .await;
+    f.insert(f.app, third_post, title, json!("third"), 12).await;
+    f.insert(
+        f.app,
+        other_user,
+        f.attr("users", "name"),
+        json!("other"),
+        13,
+    )
+    .await;
+
+    let requests = vec![
+        request(f.first, "posts", "owner.name"),
+        request(f.second, "posts", "owner.name"),
+        request(third_post, "posts", "owner.name"),
+        request(f.user, "users", "posts.title"),
+        request(other_user, "users", "posts.title"),
+    ];
+    let tx = f
+        .client
+        .build_transaction()
+        .isolation_level(IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()
+        .await
+        .unwrap();
+    let loader = PostgresPermissionDataLoader {
+        app_id: f.app,
+        catalog: &f.catalog,
+    };
+    let refs = loader.load_refs(&tx, requests.clone()).await.unwrap();
+    // Two roots share one owner: each still receives exactly its own value.
+    assert_eq!(refs[&requests[0]], vec![json!("own")]);
+    assert_eq!(refs[&requests[1]], vec![json!("own")]);
+    assert_eq!(refs[&requests[2]], vec![json!("other")]);
+    // Reverse traversal keeps the legacy per-root ordering.
+    assert_eq!(
+        refs[&requests[3]],
+        vec![json!("own-first"), json!("own-second")]
+    );
+    assert_eq!(refs[&requests[4]], vec![json!("third")]);
+    tx.rollback().await.unwrap();
+    f.close().await;
+}
+
+#[tokio::test]
+async fn reference_statement_count_depends_on_paths_not_entities() {
+    let Some(mut f) = Fixture::new().await else {
+        return;
+    };
+    // pg_stat_statements is optional in the local acceptance cluster; skip when
+    // it is absent.
+    let statement_count = "SELECT coalesce(sum(calls), 0)::bigint
+                             FROM pg_stat_statements
+                            WHERE query LIKE '%FROM triples%'";
+    if f.client.query_one(statement_count, &[]).await.is_err() {
+        f.close().await;
+        return;
+    }
+
+    let owner = f.attr("posts", "owner");
+    let mut requests = Vec::new();
+    for index in 0..64 {
+        let post = Uuid::new_v4();
+        f.insert(f.app, post, owner, json!(f.user), 100 + index)
+            .await;
+        requests.push(request(post, "posts", "owner.name"));
+    }
+    // Counts are deltas so the test needs no pg_stat_statements_reset
+    // privilege. Concurrent triples statements only make the bound more
+    // generous, and a per-entity regression is an order of magnitude larger.
+    let before: i64 = f
+        .client
+        .query_one(statement_count, &[])
+        .await
+        .unwrap()
+        .get(0);
+    let tx = f
+        .client
+        .build_transaction()
+        .isolation_level(IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()
+        .await
+        .unwrap();
+    let loader = PostgresPermissionDataLoader {
+        app_id: f.app,
+        catalog: &f.catalog,
+    };
+    let refs = loader.load_refs(&tx, requests.clone()).await.unwrap();
+    assert_eq!(refs[&requests[0]], vec![json!("own")]);
+    tx.rollback().await.unwrap();
+    let after: i64 = f
+        .client
+        .query_one(statement_count, &[])
+        .await
+        .unwrap()
+        .get(0);
+    f.close().await;
+    let calls = after - before;
+    assert!(
+        calls < i64::try_from(requests.len()).unwrap(),
+        "statements must scale with reference paths, not the {} entities; saw {calls}",
+        requests.len()
+    );
+}
